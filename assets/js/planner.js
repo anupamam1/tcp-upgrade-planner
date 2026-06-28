@@ -17,9 +17,11 @@ export function docUrl(data, target, id) {
   if (!docs) return null;
   const ver = docs.versionSlug?.[target] || (target || "").replace(/\./g, "-");
   const guide = `${docs.base}/${ver}/${docs.guidePath}`;
+  const guideHome = `${docs.base}/${ver}/${docs.guidePath}.html`; // home sits beside the guide dir
+  if (id === "home") return guideHome;
   if (docs.componentPages?.[id]) return `${guide}/${docs.upgradingPath}/${docs.componentPages[id]}`;
   if (docs.guidePages?.[id]) return `${guide}/${docs.guidePages[id]}`;
-  return `${guide}/${docs.guidePages?.home || ""}`;
+  return guideHome;
 }
 
 // Target version string for a component at a given destination.
