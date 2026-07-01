@@ -1,4 +1,4 @@
-import { loadData, buildPlan, availableComponents, sourcesFor, intermediatesFor, targets, allSourcesFor, editionsFor, componentCaveat, docUrl } from "./planner.js?v=25";
+import { loadData, buildPlan, availableComponents, sourcesFor, intermediatesFor, targets, allSourcesFor, editionsFor, componentCaveat, docUrl } from "./planner.js?v=26";
 
 const el = (id) => document.getElementById(id);
 const DONE_KEY = "tcp-upgrade-done";
@@ -257,19 +257,13 @@ function selectionSummaryHTML(plan) {
   const comps = plan.cards.filter((c) => c.kind !== "checklist");
   const hasFS = !!DATA.sequence[plan.edition]?.hasFullStack;
   const hasInfra = plan.cards.some((c) => ["nsx", "vcenter", "esxi", "vsan", "aria-orchestrator"].includes(c.id));
-  const scope = hasFS ? (hasInfra ? "Full-stack (incl. infrastructure)" : "CNF layer only") : "Full deployment";
-  const rows = comps.map((c) => {
-    return `<li><span class="sc-name">✓ ${escape(c.name)}</span><span class="sc-ver">${verSpan(c.sourceVersion, c.targetVersion)}</span></li>`;
-  }).join("");
+  const scope = hasFS ? (hasInfra ? "Full-stack (includes infrastructure layer)" : "CNF layer only") : null;
+  const items = comps.map((c) =>
+    `<div class="sum-item"><span class="sc-name">${escape(c.name)}</span><span class="sc-ver">${verSpan(c.sourceVersion, c.targetVersion)}</span></div>`
+  ).join("");
   return `<section class="summary-card">
-    <h3>Your selection</h3>
-    <div class="summary-grid">
-      <div><span class="sk">Route</span><span class="sv">${escape(routeString(plan.edition, plan.source, plan.target))}</span></div>
-      <div><span class="sk">Workload</span><span class="sv">${escape(plan.edition)}</span></div>
-      <div><span class="sk">Scope</span><span class="sv">${escape(scope)}</span></div>
-      <div><span class="sk">Phases</span><span class="sv">${plan.cards.length}</span></div>
-    </div>
-    <div class="summary-comps"><span class="sk">Components to upgrade (${comps.length})</span><ul>${rows}</ul></div>
+    <div class="summary-head"><h3>Components to upgrade</h3><span class="sc-count">${comps.length}</span>${scope ? `<span class="sc-scope">${escape(scope)}</span>` : ""}</div>
+    <div class="sum-list">${items}</div>
   </section>`;
 }
 

@@ -229,16 +229,15 @@ svg { flex: none; }
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg);
   padding: 1.1rem 1.3rem; margin-bottom: 1.3rem; box-shadow: var(--shadow);
 }
-.summary-card h3 { margin: 0 0 0.8rem; font-size: 0.95rem; }
-.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.7rem 1.2rem; margin-bottom: 0.9rem; }
-.summary-grid > div { display: flex; flex-direction: column; gap: 0.15rem; }
-.sk { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-dim); font-weight: 700; }
-.sv { font-size: 0.9rem; }
-.summary-comps { border-top: 1px solid var(--line); padding-top: 0.7rem; }
-.summary-comps ul { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.2rem 1.4rem; }
-.summary-comps li { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.85rem; padding: 0.25rem 0; }
-.sc-name { color: var(--ink); font-weight: 500; }
+.summary-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.7rem; flex-wrap: wrap; }
+.summary-head h3 { margin: 0; font-size: 0.95rem; }
+.sc-count { font-size: 0.72rem; font-weight: 700; background: var(--accent-soft); color: var(--accent); border-radius: 99px; padding: 0.1rem 0.5rem; }
+.sc-scope { font-size: 0.75rem; color: var(--ink-dim); margin-left: auto; }
+.sum-list { columns: 2; column-gap: 2rem; }
+.sum-item { display: flex; justify-content: space-between; gap: 0.8rem; font-size: 0.85rem; padding: 0.32rem 0; border-bottom: 1px solid var(--line); break-inside: avoid; }
+.sc-name { color: var(--ink); }
 .sc-ver { color: var(--accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { .sum-list { columns: 1; } }
 
 /* ---------- Phase stepper ---------- */
 .stepper { display: flex; gap: 0; overflow-x: auto; padding: 0.4rem 0 1.3rem; }
