@@ -1,4 +1,4 @@
-import { loadData, buildPlan, availableComponents, sourcesFor, intermediatesFor, targets, allSourcesFor, editionsFor, componentCaveat, docUrl } from "./planner.js?v=23";
+import { loadData, buildPlan, availableComponents, sourcesFor, intermediatesFor, targets, allSourcesFor, editionsFor, componentCaveat, docUrl } from "./planner.js?v=24";
 
 const el = (id) => document.getElementById(id);
 const DONE_KEY = "tcp-upgrade-done";
@@ -7,6 +7,7 @@ let DATA = null;
 let currentPlan = null;
 let phaseIndex = 0;
 let fullStackOn = true;
+let sourceChoice = {}; // componentId -> user-picked current version (when the guide lists several)
 let doneSet = new Set(JSON.parse(localStorage.getItem(DONE_KEY) || "[]"));
 
 function saveDone() {
@@ -28,6 +29,12 @@ function currentEdition() {
 function verSpan(src, tgt) {
   const multi = !src || src === "NA" || /[\/,]|\bor\b/.test(src);
   return multi ? `→ ${escape(tgt)}` : `${escape(src)} → ${escape(tgt)}`;
+}
+
+// Split a matrix cell like "4.1.0.2 / 4.1.1" or "8.0b or 8.0 U1" into individual versions.
+function parseVersions(cell) {
+  if (!cell || cell === "NA") return [];
+  return cell.split(/\s*(?:\/|,|\bor\b)\s*/).map((s) => s.trim()).filter(Boolean);
 }
 
 // Full resolved route incl. intermediate platform hops, e.g.
@@ -76,6 +83,7 @@ function setStepsVisible(upTo) {
 
 function onSourceChange() {
   const source = el("source").value;
+  sourceChoice = {}; // new source release => reset per-component version picks
   if (!source) { setStepsVisible(1); el("generate").disabled = true; return; }
 
   // Destinations reachable from this source (some edition supports it).
@@ -146,15 +154,29 @@ function renderComponents(edition, source, target) {
   el("components").innerHTML = html;
   const master = el("fsMaster");
   if (master) master.addEventListener("change", () => { fullStackOn = master.checked; renderComponents(edition, source, target); });
+  // Current-version dropdowns: remember the choice.
+  document.querySelectorAll(".ck-srcsel").forEach((sel) => {
+    sel.addEventListener("change", () => { sourceChoice[sel.dataset.comp] = sel.value; });
+  });
 }
 
 function ckRow(c, target) {
   const tgt = DATA.versions.targets?.[target]?.[c.id] || DATA.versions.components[c.id]?.[target] || target;
-  const ver = `<span class="ck-ver">${verSpan(c.sourceVersion, tgt)}</span>`;
+  const opts = parseVersions(c.sourceVersion);
+  let ver;
+  if (opts.length > 1) {
+    // The guide lists several possible source versions — let the user pick which they're on.
+    const chosen = sourceChoice[c.id] || opts[0];
+    const options = opts.map((o) => `<option ${o === chosen ? "selected" : ""}>${escape(o)}</option>`).join("");
+    ver = `<span class="ck-ver ck-pick" title="Select your current version"><select class="ck-srcsel" data-comp="${c.id}">${options}</select> &rarr; ${escape(tgt)}</span>`;
+  } else {
+    ver = `<span class="ck-ver">${verSpan(c.sourceVersion, tgt)}</span>`;
+  }
   const lock = c.mandatory ? ` <span class="ck-lock" title="Mandatory dependency — cannot be skipped">Required</span>` : "";
   const gate = !c.mandatory && c.gate ? `<span class="ck-gate">${escape(c.gate)}</span>` : "";
   const dis = c.mandatory ? "checked disabled" : "checked";
-  return `<label class="ck${c.mandatory ? " locked" : ""}"><input type="checkbox" data-comp="${c.id}" ${dis}/> <span class="ck-name">${escape(c.name)}${lock}</span>${ver}${gate}</label>`;
+  const id = `ck-${c.id}`;
+  return `<div class="ck${c.mandatory ? " locked" : ""}"><input type="checkbox" id="${id}" data-comp="${c.id}" ${dis}/> <label class="ck-name" for="${id}">${escape(c.name)}${lock}</label>${ver}${gate}</div>`;
 }
 
 // ---------- Generate ----------
@@ -172,7 +194,11 @@ function generate() {
   const target = el("destination").value;
   // Selected = checked component boxes (data-comp); the infra master toggle is excluded.
   const selected = new Set([...document.querySelectorAll('#components input[data-comp]:checked')].map((c) => c.dataset.comp));
+  // Capture any current-version picks (defaults to the shown option if untouched).
+  document.querySelectorAll('.ck-srcsel').forEach((sel) => { sourceChoice[sel.dataset.comp] = sel.value; });
   currentPlan = buildPlan(DATA, edition, source, target, selected);
+  // Apply the user's chosen current version so each phase reads "<chosen> → <target>".
+  currentPlan.cards.forEach((card) => { if (sourceChoice[card.id]) card.sourceVersion = sourceChoice[card.id]; });
   phaseIndex = 0;
   // Start every generated runbook fresh — no carry-over of completion from a previous run.
   doneSet = new Set();

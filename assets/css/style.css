@@ -186,12 +186,16 @@ svg { flex: none; }
 .ck {
   display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.55rem;
   padding: 0.5rem 0.65rem; border: 1px solid var(--line); border-radius: 6px;
-  background: var(--surface); font-size: 0.88rem; cursor: pointer;
+  background: var(--surface); font-size: 0.88rem;
 }
 .ck:hover { border-color: var(--line-2); background: var(--surface-2); }
 .ck.locked { background: var(--surface-2); }
-.ck-name { font-weight: 500; }
+.ck input[type="checkbox"] { cursor: pointer; }
+.ck-name { font-weight: 500; cursor: pointer; }
 .ck-ver { font-size: 0.74rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+.ck-pick { display: inline-flex; align-items: center; gap: 0.3rem; }
+.ck-srcsel { font: inherit; font-size: 0.72rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line-2); border-radius: 4px; padding: 0.1rem 0.3rem; max-width: 140px; }
+.ck-srcsel:focus { outline: none; border-color: var(--accent); }
 .ck-gate { grid-column: 2 / -1; font-size: 0.74rem; color: var(--ink-dim); }
 .ck-lock { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-dim); font-weight: 700; background: var(--surface-3); border: 1px solid var(--line); border-radius: 4px; padding: 0.05rem 0.35rem; margin-left: 0.3rem; }
 .ck-skip { font-size: 0.8rem; color: var(--ink-dim); font-style: italic; margin: 0.3rem 0 0; }
