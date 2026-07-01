@@ -1,4 +1,4 @@
-import { loadData, buildPlan, availableComponents, sourcesFor, intermediatesFor, targets, allSourcesFor, editionsFor, componentCaveat, docUrl } from "./planner.js?v=27";
+import { loadData, buildPlan, availableComponents, sourcesFor, intermediatesFor, targets, allSourcesFor, editionsFor, componentCaveat, docUrl } from "./planner.js?v=28";
 
 const el = (id) => document.getElementById(id);
 const DONE_KEY = "tcp-upgrade-done";
@@ -9,6 +9,8 @@ let phaseIndex = 0;
 let fullStackOn = true;
 let sourceChoice = {}; // componentId -> user-picked current version (when the guide lists several)
 let doneSet = new Set(JSON.parse(localStorage.getItem(DONE_KEY) || "[]"));
+let checkState = new Set(JSON.parse(localStorage.getItem("tcp-checks") || "[]"));
+function saveChecks() { localStorage.setItem("tcp-checks", JSON.stringify([...checkState])); }
 
 function saveDone() {
   localStorage.setItem(DONE_KEY, JSON.stringify([...doneSet]));
@@ -203,6 +205,8 @@ function generate() {
   // Start every generated runbook fresh — no carry-over of completion from a previous run.
   doneSet = new Set();
   saveDone();
+  checkState = new Set();
+  saveChecks();
   setActiveNav("plan");
   el("wizardCard").hidden = true;
   el("contentActions").hidden = false;
@@ -227,6 +231,16 @@ function calloutSection(title, text, cls) {
   return `<div class="callout ${cls}"><span class="callout-t">${escape(title)}</span> ${escape(text)}</div>`;
 }
 
+// Tickable checklist (for prerequisites and the checklist phases). Ticks persist per plan.
+function checkListSection(title, items, prefix) {
+  if (!items || !items.length) return "";
+  const rows = items.map((it, i) => {
+    const k = `${prefix}:${i}`;
+    return `<label class="chk"><input type="checkbox" data-k="${escape(k)}" ${checkState.has(k) ? "checked" : ""}/><span>${escape(it)}</span></label>`;
+  }).join("");
+  return `<div class="sec"><h4>${escape(title)}</h4><div class="chk-list">${rows}</div></div>`;
+}
+
 function snippetsHTML(snippets) {
   if (!snippets || !snippets.length) return "";
   return `<div class="sec snippets"><h4>Reference snippets</h4>` + snippets.map((s) => {
@@ -243,8 +257,8 @@ function phaseBodyHTML(card) {
   if (card.conditional) body += calloutSection("Applies only if", card.conditional, "cond");
   const cav = currentPlan && componentCaveat(DATA, currentPlan.target, currentPlan.source, card.id);
   if (cav) body += calloutSection("Required version sequence", cav, "impact");
-  if (card.kind === "checklist") body += listSection("Checklist", card.checklist, "checklist-sec");
-  body += listSection("Prerequisites", card.prerequisites, "prereq");
+  if (card.kind === "checklist") body += checkListSection("Checklist", card.checklist, `${card.id}:cl`);
+  body += checkListSection("Prerequisites", card.prerequisites, `${card.id}:pr`);
   body += calloutSection("Service impact", card.impact, "impact");
   body += calloutSection("Rollback", card.rollback, "rollback");
   body += listSection("Key considerations", card.considerations, "consider");
@@ -331,6 +345,14 @@ function renderPhase() {
     </article>`;
 
   el("phaseHost").innerHTML = banner + phasePanel;
+
+  // Persist checklist ticks.
+  document.querySelectorAll("#phaseHost .chk input").forEach((cb) => {
+    cb.addEventListener("change", () => {
+      if (cb.checked) checkState.add(cb.dataset.k); else checkState.delete(cb.dataset.k);
+      saveChecks();
+    });
+  });
 
   // Refresh stepper dots/states in place.
   document.querySelectorAll(".pstep").forEach((b, i) => {
