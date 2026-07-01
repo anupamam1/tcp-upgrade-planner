@@ -1,4 +1,4 @@
-import { loadData, buildPlan, availableComponents, sourcesFor, intermediatesFor, targets, allSourcesFor, editionsFor, componentCaveat, docUrl } from "./planner.js?v=30";
+import { loadData, buildPlan, availableComponents, sourcesFor, intermediatesFor, targets, allSourcesFor, editionsFor, componentCaveat, docUrl } from "./planner.js?v=31";
 
 const el = (id) => document.getElementById(id);
 const DONE_KEY = "tcp-upgrade-done";

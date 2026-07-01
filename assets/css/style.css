@@ -81,32 +81,33 @@ svg { flex: none; }
   stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
 }
 
-/* ---------- Clarity dark header ---------- */
+/* ---------- Clarity light header ---------- */
 .topbar {
   display: flex; justify-content: space-between; align-items: center; gap: 1rem;
-  padding: 0 1.6rem; min-height: 60px; background: var(--header-bg);
-  position: sticky; top: 0; z-index: 30; box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+  padding: 0 1.6rem; min-height: 60px; background: var(--surface);
+  border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 30;
+  box-shadow: 0 1px 2px rgba(15, 30, 39, 0.04);
 }
 .brand { display: flex; align-items: center; gap: 0.7rem; }
-.brand-mark { width: 24px; height: 24px; fill: #fff; stroke: none; flex: none; }
-.topbar h1 { font-size: 1rem; margin: 0; font-weight: 600; line-height: 1.2; color: var(--header-ink); }
-.topbar h1 span { font-weight: 400; color: var(--header-dim); }
-.tagline { margin: 0; font-size: 0.74rem; color: var(--header-dim); }
+.brand-mark { width: 24px; height: 24px; fill: var(--accent); stroke: none; flex: none; }
+.topbar h1 { font-size: 1rem; margin: 0; font-weight: 600; line-height: 1.2; color: var(--ink); }
+.topbar h1 span { font-weight: 400; color: var(--ink-2); }
+.tagline { margin: 0; font-size: 0.74rem; color: var(--ink-dim); }
 .mainnav { display: flex; align-items: stretch; gap: 0; height: 60px; }
 .nav-link {
   display: inline-flex; align-items: center; height: 100%;
-  color: var(--header-dim); padding: 0 1rem; font-size: 0.86rem; font-weight: 500;
+  color: var(--ink-2); padding: 0 1rem; font-size: 0.86rem; font-weight: 500;
   border-bottom: 3px solid transparent;
 }
-.nav-link:hover { color: #fff; text-decoration: none; background: rgba(255,255,255,0.06); }
-.nav-link.active { color: #fff; border-bottom-color: var(--accent); font-weight: 600; }
+.nav-link:hover { color: var(--ink); text-decoration: none; background: var(--surface-2); }
+.nav-link.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
 .icon-btn {
   display: inline-flex; align-items: center; gap: 0.4rem; margin-left: 0.8rem; align-self: center;
-  background: transparent; border: 1px solid rgba(255,255,255,0.35); color: #fff;
+  background: var(--surface-2); border: 1px solid var(--line-2); color: var(--ink-2);
   border-radius: var(--radius); padding: 0.3rem 0.7rem; cursor: pointer; font: inherit;
   font-size: 0.8rem; font-weight: 500;
 }
-.icon-btn:hover { background: rgba(255,255,255,0.12); border-color: #fff; }
+.icon-btn:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); }
 .icon-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; }
 
 /* ---------- Buttons (Clarity) ---------- */
