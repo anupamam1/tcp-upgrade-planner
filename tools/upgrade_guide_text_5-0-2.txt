@@ -519,4 +519,475 @@ Upgrade Harbor for CNFs
    deployments. You can deploy and upgrade Harbor as a CNF through Telco Cloud Automation.
    To download Harbor for CNFs, see Drivers & Tools on the Telco Cloud Platform 5.0.2 Advanced
    downloads page.
-   Upgrade Harbor for CNFs. For instructions, see the 
+   Upgrade Harbor for CNFs. For instructions, see the Harbor for CNFs Deployment and Configuration Guide.
+          Attention:
+          Harbor for CNFs is packaged as part of Telco Cloud Platform from release 4.0.1 onwards. This
+          upgrade procedure is applicable when you deployed Harbor as a CNF in Telco Cloud Platform 4.0.1
+          or later.
+
+
+                                                                                                                247
+Upgrade Avi Load Balancer
+   This section describes how to upgrade Avi Load Balancer to 30.2.3.
+   1. Take a snapshot and backup of the AVI controllers.
+   2. Ensure that the Avi Load Balancer versions is compatible with Avi Kubernetes Operator (AKO). To
+      identify the compatible versions, see the AKO Compatibility Matrix.
+   You can download Avi Load Balancer from the VMware Avi Load Balancer Downloads page.
+   Upgrade Avi Load Balancer. For instructions, see Upgrade Guide.
+   Avi Load Balancer is upgraded successfully, and applications are accessible.
+
+Upgrade Avi Kubernetes Operator
+   This section describes how to upgrade Avi Kubernetes Operator (AKO) to 1.13.3.
+   1. Ensure that Avi Load Balancer is upgraded.
+   2. Ensure that the AKO version is compatible with the supported Kubernetes versions. For more
+      information, see the AKO Compatibility Matrix.
+   3. (Applies only when upgrading AKO using Helm) If you are using an Airgap environment, ensure that the
+      Helm charts are published in the local repository.
+   You can download AKO from the VMware Avi Load Balancer Downloads page.
+   If you installed AKO using Helm, upgrade AKO by using Helm. For instructions, see the Upgrade AKO
+   section in Install AKO.
+
+Upgrade Tanzu Kubernetes Clusters
+   VMware Telco Cloud Automation is integrated with VMware Tanzu Kubernetes Grid. To upgrade Tanzu
+   Kubernetes Grid to 2.5.4, you must first upgrade the Tanzu Kubernetes management clusters and then the
+   Tanzu Kubernetes workload clusters.
+   If Tanzu Kubernetes clusters are deployed in an airgap environment, ensure that the airgap server is
+   upgraded first. For information about the Kubernetes upgrade compatibility for clusters, see:
+   •   Upgrade Management Cluster Kubernetes Version.
+   •   Upgrade Workload Cluster Kubernetes Version.
+   1. Download the latest version of the Kubernetes Cluster templates that you use to upgrade the Tanzu
+      Kubernetes cluster.
+      To download Tanzu Kubernetes Grid, go to the Drivers & Tools section on the Telco Cloud Platform
+      Advanced downloads page.
+   2. Import the Kubernetes Cluster OVA into vSphere where the Tanzu Kubernetes cluster is located, and
+      convert the OVA into a template.
+   3. Upgrade the Tanzu Kubernetes management cluster. For instructions, see Upgrade the Kubernetes
+      Version for a Cluster Instance.
+      Repeat Step 3 to upgrade each Tanzu Kubernetes management cluster sequentially.
+   4. Upgrade the Tanzu Kubernetes workload clusters. For instructions, see Upgrade Kubernetes Version
+      for Workload Cluster Instance.
+       Repeat Step 4 to upgrade each Tanzu Kubernetes workload cluster.
+   VMware Tanzu Kubernetes Clusters are upgraded successfully. All pods in the cluster are up and running.
+   Update the Kubernetes version in the cluster templates:
+   1. In the Telco Cloud Automation UI, navigate to Infrastructure > CaaS Infrastructure > Cluster templates.
+   2. Edit the templates that show compatibility errors.
+   3. Change the Kubernetes version to the latest one.
+
+
+                                                                                                                248
+Upgrade NSX
+   You can upgrade VMware NSX to 4.2.2.1 using the upgrade coordinator. The upgrade coordinator resides
+   in the NSX Manager and orchestrates the NSX components upgrade inside ESXi hosts, NSX Edge cluster,
+   and NSX management plane. The upgrade process involves upgrading the components in the following
+   sequence: VMware NSX Edges, ESXi Hosts, and NSX management plane.
+   1. Perform the Pre-Upgrade Tasks.
+   2. Review the NSX Upgrade Checklist to track your work on the NSX upgrade process.
+   3. Prepare your infrastructure for the NSX upgrade.
+   4. Back up the existing NSX Manager.
+   5. Ensure that alerts displayed on the NSX Alerts page are fixed.
+   To download NSX, see the Telco Cloud Platform Advanced downloads page.
+   Upgrade NSX to 4.2.2.1 .
+   a) Upgrade the Upgrade Coordinator component.
+   b) Upgrade NSX edges.
+   c) Upgrade ESXi hosts.
+       Note:
+       •   In case of SR-IOV enabled worker nodes or if the worker nodes cannot be migrated to another ESXi
+           host, follow these steps and then proceed with ESXi upgrade in NSX.
+           1. Drain the pods of the worker node VMs
+           2. Manually power OFF the worker node VMs
+        For detailed instructions to manually power OFF the worker node VMs, see Steps 3 and 4 in
+        Upgrade ESXi that Runs Tanzu Kubernetes Worker Node VMs Configured with SR-IOV.
+      • In case of vSphere Lifecycle Manager-enabled Cluster, follow the instructions in Upgrade a vSphere
+        Lifecycle Manager-enabled Cluster.
+   d) Upgrade NSX manager.
+   1. Perform the post-upgrade tasks to verify that the NSX upgrade is successful.
+   2. After the NSX upgrade is successful, verify that the clusters prepared for NSX are in the Success state:
+      a. Log in to NSX Manager using Virtual IP (VIP) address.
+      b. Navigate to System > Fabric > Node > Host Transport Nodes.
+      c. Verify that all the clusters prepared for NSX are in Success state without any error.
+      d. If there is an error on the ESXi hosts in the cluster, reconfigure the transport node by selecting the
+         CONFIGURE NSX option on the cluster using the existing transport node profile. If there is any other
+         upgrade issue, see Troubleshooting Upgrade Failures.
+   3. Update the NSX certificate in the TCA Appliance Manager UI by re-entering the NSX credentials and
+      accepting the certificate.
+       a. Log in to TCA Appliance Manager UI for TCA-CP.
+       b. Click the Configuration tab.
+       c. Select NSX.
+       d. Click Edit and enter the NSX admin user password.
+       e. Click Save.
+
+Upgrade vCenter
+   This section describes how to upgrade vCenter to 8.0 U3x, where x represents any patch version on top of
+   8.0 U3.
+   •   Log in to the vCenter Server Appliance Management Interface (VAMI) and verify that the statuses of all
+       the vCenter services are healthy and started.
+   •   Take a VM snapshot of the vCenter appliance. For instructions, see Creating a Snapshot of a VM.
+
+
+                                                                                                                  249
+   To download vCenter, see the Telco Cloud Platform Advanced downloads page.
+   Upgrade the vCenter Appliance. For instructions, see Patching and Updating vCenter Server 8.0
+   Deployments.
+   Note:
+   You can also update vCenter using Telco Cloud Automation. For instructions, see User Scenarios in
+   Infrastructure Lifecycle Management Workflows.
+   vCenter is upgraded successfully and all services are up and running.
+
+Upgrading ESXi
+   This section describes how to upgrade ESXi to 8.0 U3x, where x represents any patch version on top of
+   8.0 U3.
+   Follow the appropriate ESXi upgrade procedure based on the ESXi configuration:
+   •   Upgrade ESXi that runs Tanzu Kubernetes worker node VMs configured with SR-IOV.
+   •   Upgrade ESXi that runs VMs configured without SR-IOV.
+   When you upgrade an ESXi host, vSAN is upgraded automatically. After upgrading all the ESXi hosts,
+   upgrade vSAN cluster objects such as vSAN on-disk format and vSAN HCL DB.
+   Note: To download ESXi, see the Telco Cloud Platform Advanced downloads page.
+
+   Upgrade ESXi that Runs Tanzu Kubernetes Worker Node VMs Configured with SR-IOV
+   If the ESXi server is running Tanzu Kubernetes Worker Node VMs configured with the SR-IOV network
+   adapter or if the worker nodes cannot be migrated to another ESXi host, manually power OFF the worker
+   node VMs and then upgrade ESXi.
+   1. For each ESXi host in the vSphere cluster, identify the list of Tanzu Kubernetes worker node VMs with
+      SR-IOV network adapters.
+       Note:
+      Make a note of the names of the worker node VMs in the ESXi host.
+   2. SSH into TCA-CP VM where the corresponding Management Cluster is deployed.
+   3. For each worker node VM with the SR-IOV network adapter, identify the Tanzu Kubernetes workload
+      cluster that the worker node VM is part of and then drain the pods of the worker node VM:
+      a) Log in to TCA-CP as an admin or root user.
+      b) Open the TCA command line utility by running these commands in sequence:
+
+           ccliPodName=`kubectl get pods -A | grep ccli | awk '{ print $2 }'`
+
+
+
+
+                                                                                                              250
+       kubectl exec --stdin --tty $ccliPodName              -n tca-cp-cn -- ccli-shell
+c) List all the Tanzu Kubernetes management clusters in the bootstrapper.
+
+       ccli>>list mc
+
+   Note:
+   Make a note of the index number of the management cluster (for example, MC1), where you want to
+   look for the worker node VM.
+d) Go to the Tanzu Kubernetes management cluster MC1.
+
+       ccli>>go <index number of the Tanzu Kubernetes management cluster>
+e) List the Tanzu Kubernetes workload clusters managed by the management cluster MC1.
+
+       ccli>>list wc
+
+   Note:
+   Make a note of the index number of the workload cluster (for example, WC1), where you want to
+   look for the worker node VM.
+f) List the names and namespaces of all workload clusters managed by the management cluster MC1.
+
+       kubectl get clusters -A
+
+   Note:
+   Make a note of the name and namespace of the workload cluster WC1, where you want to look for
+   the worker node VM.
+g) Go to the workload cluster WC1 managed by the management cluster MC1.
+
+       ccli>>go <index number of Tanzu Kubernetes workload cluster>
+h) List all the worker node VMs in the workload cluster WC1 and verify whether the list shows the
+   worker node VM that you are looking for.
+
+       ccli>>list nodes
+
+   •  If the worker node VM you are looking for is shown in the worker node list of the workload cluster
+      WC1, continue to step 3g.
+   • If the worker node VM you are looking for is not shown in the worker node list of the workload
+      cluster WC1, repeat steps 3e and 3f for the remaining workload clusters managed by the
+      management cluster MC1.
+   • If the worker node VM you are looking for is not shown in the worker node list of all the workload
+      clusters managed by the management cluster MC1, repeat steps 3b through 3f for the remaining
+      management clusters.
+i) After identifying the workload cluster that the worker node VM is part of, pause the health check of
+   the worker node VM by running the following commands in sequence:
+
+       ccli>>list mc
+       ccli>>go <index number of the management cluster that the worker node VM
+        belongs to>
+
+
+
+
+                                                                                                           251
+        kubectl patch cluster <cluster_name> --type merge -p '{"spec":
+         {"paused": true}}' -n <cluster_namespace>
+
+       cluster_name specifies the name of the workload cluster that the worker node VM belongs to.
+       cluster_namespace specifies the namespace of the workload cluster that the worker node VM
+       belongs to.
+    j) Drain the pods of the worker node VM by running the following commands in sequence:
+
+        ccli>>list wc
+        ccli>>go <index number of the Tanzu Kubernetes workload cluster that the
+         worker node VM belongs to>
+        kubectl drain <worker_node_name> --ignore-daemonsets --delete-local-data
+         --force
+
+       worker_node_name specifies the name of the worker node VM.
+   k) Repeat Steps 3a-3h for the remaining worker node VMs that use SR-IOV network adapters on the
+       ESXi host.
+4. Power OFF all the worker node VMs that use SR-IOV network adapters on the ESXi host.
+5. In Lifecycle Manager, apply the baseline to the ESXi host and remediate. For more information, see
+   Remediating ESXi Hosts Against vSphere Lifecycle Manager Baselines.
+    Note:
+   If you are using vSphere LCM-enabled clusters, upgrade ESXi hosts by following the instructions in
+   Upgrade a vSphere Lifecycle Manager-enabled Cluster.
+6. After the ESXi host remediation is completed, power ON all the worker node VMs that use the SR-IOV
+   network adapter on the ESXi host.
+7. Uncordon each worker node VM by running the following commands in sequence:
+
+     ccli>>list mc
+     ccli>>go <index number of the management cluster>
+     ccli>>list wc
+     ccli>>go <index number of the workload cluster>
+     kubectl get nodes
+     kubectl uncordon <worker node name>
+
+8. Resume the health check of each worker node VM:
+
+     kubectl patch cluster <cluster_name> --type merge -p '{"spec": {"paused":
+      false}}' -n <cluster_namespace>
+
+    cluster_name specifies the name of the workload cluster that the worker node VM belongs to.
+   cluster_namespace specifies the namespace of the workload cluster that the worker node VM belongs
+   to.
+9. Repeat Steps 1-8 for the remaining ESXi hosts in the vSphere cluster.
+The ESXi host is successfully upgraded and rebooted.
+
+Upgrade ESXi that Runs VMs Configured without SRIOV
+If the ESXi server is running VMs without the SR-IOV network adapter, follow these steps to upgrade the
+ESXi server.
+Use one of the following methods to upgrade the ESXi server. For more information, see the VMware ESXi
+Upgrade Guide.
+•   GUI installer
+•   Scripts
+•   ESXCLI
+
+
+                                                                                                          252
+    •   vSphere Auto Deploy
+    •   vSphere Lifecycle Manager
+    The ESXi host is successfully upgraded and rebooted.
+
+    Upgrade a vSAN Cluster
+    When you upgrade an ESXi host, vSAN is upgraded automatically. After upgrading all the ESXi hosts,
+    upgrade the vSAN cluster objects such as vSAN on-disk format and vSAN HCL DB.
+    Note:
+    The disk format upgrade is optional. If you use a previous disk format version, your vSAN cluster continues
+    to run smoothly. For best results, upgrade to the latest on-disk format that provides the complete feature
+    set of vSAN. For more information, see About the Virtual SAN Disk Format.
+    (Optional) Upgrade the vSAN Disk Format Using vSphere Client.
+    vSAN disks are upgraded successfully.
+    Verify that the vSAN cluster upgrade is successful.
+
+Upgrade Aria Products
+    Upgrading VMware Aria products involves upgrading Aria Operations for Logs, Aria Operations, Aria
+    Automation Orchestrator, and Aria Operations for Networks.
+    •   Take a VM snapshot of the Aria Operations for Logs cluster nodes. For instructions, see Creating a
+        Snapshot of a VM.
+    •   Take a VM snapshot of the Aria Operations nodes. For instructions, see Creating a Snapshot of a VM.
+    •   Take a VM snapshot of the Aria Automation Orchestrator deployment. For instructions, see Creating a
+        Snapshot of a VM.
+                CAUTION:
+               Aria Automation Orchestrator 8.x does not support memory snapshots. Before taking the
+               snapshot of the Aria Automation Orchestrator deployment, ensure that theSnapshot the virtual
+               machine's memory option is deactivated.
+    •   Take a VM snapshot of the Aria Operations for Networks deployment. For instructions, see KB55829
+        and Backup a VMware Aria Operations for Networks Deployment.
+    To download these components, see the Telco Cloud Platform Advanced downloads page.
+    For information about compatible versions for Aria upgrades, see the VMware Interoperability Matrix.
+    1. Upgrade Aria Operations for Logs from 8.18 to 8.18.3.
+        Note:
+       • You must upgrade agents in the required VMs to capture data appropriately.
+    2. Upgrade Aria Operations from 8.18 to 8.18.3. For instructions, see the Aria Operations 8.18 Release
+       Notes.
+                CAUTION:
+                The NTP service does not start automatically following the Aria Operations upgrade, failing
+                to restore the Aria Operations cluster to online. As a workaround, follow the instructions in
+                KB93793 after the upgrade.
+                For more information, see VMware Aria Operations Upgrade Prerequisites and VMware Aria
+                Operations Software Updates.
+    3. Upgrade Aria Automation Orchestrator from 8.18 to 8.18.1. For instructions, see the Aria Automation
+       Orchestrator Upgrade Guide.
+    4. Continue using Aria Operations for Networks 6.13.
+
+
+
+                                                                                                                  253
+Post-Upgrade Checklist
+   After upgrading Telco Cloud Platform, verify that all the components are working as expected.
+
+   Category                            Component                          Verify
+
+   Physical Infrastructure             Network                            •   All required VLANs are inter-
+                                                                              routable.
+                                                                          •   ESXi physical uplinks are
+                                                                              functioning.
+                                                                          •   MTU is configured properly on
+                                                                              physical switches.
+                                                                          •   NTP, DHCP, and DNS servers
+                                                                              are accessible.
+                                                                          •   External connectivity is
+                                                                              working (if external access is
+                                                                              required).
+                                                                          •   External Harbor server is
+                                                                              reachable (if used).
+
+                                       Compute                            •   Open the host client on a
+                                                                              browser and verify that you
+                                                                              can log in to the host.
+                                                                          •   Ensure that no warnings or
+                                                                              alerts are displayed on the
+                                                                              Host Client UI.
+
+                                       Storage                            •   vSAN is accessible and is in a
+                                                                              healthy state.
+
+   NFVI & VIM                          Management and Resource            •   Management and Resource
+                                       vCenter Servers                        vCenter Servers are
+                                                                              accessible.
+                                                                          •   All cluster properties are
+                                                                              correct.
+                                                                          •   All vSphere Distributed
+                                                                              Switches are working properly.
+                                                                          •   All vSphere Distributed
+                                                                              Switches are configured
+                                                                              with the same MTU as their
+                                                                              residing physical networks.
+                                                                          •   Ensure that the root password
+                                                                              expiry is set as per your
+                                                                              company policy.
+                                                                          •   Ensure that NTP is configured
+                                                                              for all Telco Cloud Platform
+                                                                              components.
+
+
+
+
+                                                                                                               254
+Category                       Component               Verify
+
+                               VMware Cloud Director   •   VMware Cloud Director is
+                                                           accessible using Avi Load
+                                                           Balancer and individual Cell
+                                                           FQDN.
+                                                       •   VMware Cloud Director
+                                                           is successfully upgraded,
+                                                           registered with vCenter, and
+                                                           configured to work with NSX.
+
+                               NSX                     •   NSX Manager and its
+                                                           component connection status
+                                                           are up and in healthy status
+                                                           (green color).
+                                                       •   No critical alerts or warnings
+                                                           displayed in the NSX UI.
+                                                       •   All NSX edge nodes and ESXi
+                                                           hosts are connected and
+                                                           operational.
+                                                       •   For ESXi and edge nodes, the
+                                                           password expiry setting for the
+                                                           admin, root, and audit users
+                                                           are aligned with your company
+                                                           policy.
+                                                       •   Admin, root, and audit account
+                                                           policies comply with security
+                                                           standards.
+                                                       •   TEP connectivity is validated.
+                                                       •   Sufficient TEP IP pools (Edge
+                                                           and Host) are avaialble
+                                                           for future edge and host
+                                                           deployments.
+
+Airgap Server                                          •   Airgap server is accessible,
+                                                           and its Harbor server is ready
+                                                           with all repositories and Helm
+                                                           charts.
+
+Aria Automation Orchestrator                           •   Aria Automation Orchestrator
+                                                           is accessible, and you can run
+                                                           the workflows.
+
+
+
+
+                                                                                             255
+Category                           Component                      Verify
+
+Tanzu Kubernetes Cluster                                          •   All pods in the Tanzu
+                                                                      Kubernetes management and
+                                                                      workload clusters must be up
+                                                                      and running.
+                                                                  •   Users must be able to
+                                                                      instantiate new Cloud-native
+                                                                      Network Functions (CNFs).
+                                                                  •   Users must be able to deploy
+                                                                      new Tanzu Kubernetes
+                                                                      clusters.
+                                                                  •   Run diagnostics on
+                                                                      Kubernetes clusters through
+                                                                      TCA UI.
+                                                                  •   Verify and fix the alerts
+                                                                      displayed on the TCA
+                                                                      dashboard.
+
+Operations Management              Aria Operations for Logs       •   Aria Operations for Logs is
+                                                                      accessible. The syslog data is
+                                                                      actively collected and stored.
+                                                                  •   All the configured content pack
+                                                                      components are accessible.
+
+                                   Aria Operations                •   Aria Operations is accessible.
+                                                                  •   All configured management
+                                                                      components are accessible.
+
+                                   Aria Operations for Networks   •   Aria Operations for Network is
+                                                                      accessible. The network data
+                                                                      is actively received and stored.
+
+Business Continuity and Disaster   Live Site Recovery             •   Live Site Recovery is
+Recovery                                                              successfully upgraded on the
+                                                                      protected (the Management
+                                                                      cluster) and recovery sites,
+                                                                      and the sites are paired.
+                                                                  •   The protected and recovery
+                                                                      sites are connected, and the
+                                                                      pair appears on the home
+                                                                      page of the Live Site Recovery
+                                                                      user interface.
+                                                                  •   Live Site Recovery from both
+                                                                      the protected and recovery
+                                                                      sites are accessible.
+
+
+
+
+                                                                                                         256
+    Category                             Component                          Verify
+
+                                         vSphere Replication                •   The vSphere Replication
+                                                                                appliance is successfully
+                                                                                upgraded on the protected
+                                                                                (Management Pod) and
+                                                                                recovery sites, and the sites
+                                                                                are paired.
+                                                                            •   vSphere Replication servers
+                                                                                are registered with respective
+                                                                                vCenter Servers for both
+                                                                                protected and recovery sites.
+
+    Delete Snapshots                     All management components          •   Verify that all the components
+                                                                                are working as expected.
+                                                                            •   Once verified, delete the
+                                                                                snapshots that you took before
+                                                                                the upgrade.
+
+
+
+

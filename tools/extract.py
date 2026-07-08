@@ -43,8 +43,13 @@ def tcp_guide_text(pdf):
     while anchor >= 0 and "cloud-native platform powered by field-proven" not in full[anchor : anchor + 400]:
         anchor = full.find("About the Telco Cloud Platform Upgrade Guide", anchor + 1)
     start = full.rfind("Telco Cloud Platform Upgrade Guide", 0, anchor)
-    end = full.find("Harbor for CNFs Deployment and Configuration Guide", start)
-    return full[start : end if end > 0 else None]
+    # The end-marker phrase also appears as an inline cross-reference inside the "Upgrade Harbor
+    # for CNFs" section itself (e.g. "...see the Harbor for CNFs Deployment and Configuration
+    # Guide."), which is BEFORE the real chapter boundary — take the LAST occurrence in the
+    # document instead of the first-after-start, since the real chapter-ending occurrence is the
+    # one immediately followed by that guide's own "Describes..." blurb.
+    end = full.rfind("Harbor for CNFs Deployment and Configuration Guide")
+    return full[start : end if end > start else None]
 
 
 def tca_k8s_photon_text(pdf, photon_range, k8s_range):

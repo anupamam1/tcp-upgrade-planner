@@ -1,14 +1,75 @@
 // Loads the curated data and resolves an ordered upgrade runbook.
 
 export async function loadData() {
-  const files = ["versions", "components", "sequence", "paths", "steps", "docs"];
-  const [versions, components, sequence, paths, steps, docs] = await Promise.all(
+  const files = ["versions", "components", "sequence", "paths", "steps", "docs", "k8s-hops"];
+  const [versions, components, sequence, paths, steps, docs, k8sHops] = await Promise.all(
     files.map((f) => fetch(`data/${f}.json`, { cache: "no-store" }).then((r) => {
       if (!r.ok) throw new Error(`Failed to load data/${f}.json (${r.status})`);
       return r.json();
     }))
   );
-  return { versions, components, sequence, paths, steps, docs };
+  return { versions, components, sequence, paths, steps, docs, k8sHops };
+}
+
+// The TCA release that corresponds to a TCP target (drives which k8s-hops.json table applies).
+export function tcaTargetFor(data, tcpTarget) {
+  return data.versions.components.tca?.[tcpTarget];
+}
+
+// Every TCA source version the target's guide documents an upgrade path from — independent of
+// the single TCP-source-implied value, for overriding when the live TCA patch has drifted.
+export function tcaSourcesFor(data, tcpTarget) {
+  return data.versions.tcaSourcesByTarget?.[tcpTarget] || [];
+}
+
+// The guide-confirmed starting Kubernetes versions ({mgmt, workload}) for a given TCA source, if
+// the guide documents a single fixed value (only true for some sources, e.g. TCA 2.3) — null
+// when the guide instead describes a range (e.g. TCA 3.1/3.2/3.3), so callers should leave the
+// Kubernetes-version picker to manual selection rather than guess.
+export function k8sDefaultsForTca(data, tcpTarget, tcaVersion) {
+  const tca = tcaTargetFor(data, tcpTarget);
+  return data.k8sHops?.[tca]?.tcaK8sDefaults?.[tcaVersion] || null;
+}
+
+// Known current-Kubernetes-version options for a phase ("mgmt" or "workload") at a TCP target.
+export function k8sVersionsFor(data, tcpTarget, phase) {
+  const tca = tcaTargetFor(data, tcpTarget);
+  return Object.keys(data.k8sHops?.[tca]?.[phase]?.chains || {});
+}
+
+// Workload-cluster current-version options that are actually compatible with a chosen
+// management-cluster current version, per TCA's "Workload Cluster Compatibility" tables.
+// Returns null when no compatibility data is published for that management version — callers
+// should fall back to the full k8sVersionsFor(..., "workload") list in that case, not an
+// empty/blocked picker, since the guide simply doesn't cover it (not "nothing is compatible").
+export function compatibleWorkloadVersions(data, tcpTarget, mgmtVersion) {
+  const tca = tcaTargetFor(data, tcpTarget);
+  const compat = data.k8sHops?.[tca]?.mgmtWorkloadCompat;
+  if (!compat || !mgmtVersion || !compat[mgmtVersion]) return null;
+  return compat[mgmtVersion];
+}
+
+// The precise TKG release for a chosen *management-cluster* Kubernetes version, per TCA's
+// "Management Cluster (vX) (TKG Y)" table headers. Only management versions have a published
+// per-version TKG label (workload versions don't) — returns null when unpublished (e.g. the
+// transitional 1.28.4/1.28.7 management versions) so callers can fall back honestly.
+export function tkgReleaseFor(data, tcpTarget, mgmtVersion) {
+  const tca = tcaTargetFor(data, tcpTarget);
+  return data.k8sHops?.[tca]?.mgmt?.tkgRelease?.[mgmtVersion] || null;
+}
+
+// Full hop chain (array of waypoint versions, inclusive of start/end) plus any notes for a
+// chosen current Kubernetes version. Returns null if unknown (e.g. no selection yet).
+export function k8sChainFor(data, tcpTarget, phase, version) {
+  const tca = tcaTargetFor(data, tcpTarget);
+  const table = data.k8sHops?.[tca]?.[phase];
+  if (!table || !version || !table.chains[version]) return null;
+  return {
+    waypoints: table.chains[version],
+    finalTarget: table.finalTarget,
+    note: table.notes?.[version] || table.interleave?.[version] || null,
+    prerequisite: table.prerequisite || null,
+  };
 }
 
 // Version-aware deep link to the official upgrade-guide page for a component/section.

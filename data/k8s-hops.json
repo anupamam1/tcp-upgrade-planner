@@ -1,0 +1,102 @@
+{
+  "3.3.0.1": {
+    "tcpTarget": "5.0.2",
+    "tcaK8sDefaults": {
+      "2.3": { "mgmt": "1.24.10", "workload": "1.24.10" },
+      "3.1.1": { "mgmt": "1.28.7", "workload": "1.26.14" }
+    },
+    "tcaK8sDefaultsNote": "TCA 2.3 environments are required to already be at Kubernetes 1.24.10 before this migration (the guide's own prerequisite). TCA 3.1.1 environments are documented as starting at management 1.28.7 / workload 1.26.14 (its dedicated walkthrough, and the note that TCA 3.1.1 and 3.2.0 both deliver 1.26.14). No single fixed starting Kubernetes version is documented for TCA 3.1, 3.2, or 3.3 — one guide note explicitly says TCA 3.3 environments can be at 'Kubernetes 1.26.14 and above,' i.e. a range, not a fixed value — so those three are left for manual selection rather than guessed.",
+    "mgmt": {
+      "finalTarget": "1.28.11",
+      "chains": {
+        "1.24.10": ["1.24.10", "1.25.7", "1.26.8", "1.27.5", "1.28.11"],
+        "1.25.7": ["1.25.7", "1.26.8", "1.27.5", "1.28.11"],
+        "1.26.8": ["1.26.8", "1.27.5", "1.28.11"],
+        "1.27.5": ["1.27.5", "1.28.11"],
+        "1.28.4": ["1.28.4", "1.28.11"],
+        "1.28.7": ["1.28.7", "1.28.11"]
+      },
+      "notes": {
+        "1.24.10": "If this management cluster was migrated from TCA 2.3, upgrade its addon first, before upgrading Kubernetes to the next version.",
+        "1.26.8": "Upgrade all workload clusters to v1.26.8+vmware.1 before this hop (see the Tanzu Kubernetes Workload Cluster phase).",
+        "1.27.5": "Verified direct hop to 1.28.11: both the dedicated TCA 2.3→3.3.0.1 walkthrough AND the separate 'Management Clusters Compatibility Cluster Operations' table (its 'Upgrade Cluster' row for column v1.27.5 reads 'Yes (v1.28.11)') independently confirm this direct hop. Only the generic 'Upgrade Management Cluster Kubernetes Version' table lists an intermediate 1.28.4 stop, and that table's own 5-version compatibility matrix doesn't even include 1.28.4 as a recognized state — treated here as the outlier, not the majority-confirmed path.",
+        "1.28.4": "This version isn't listed in TCA's 'Management Clusters Compatibility Cluster Operations' table at all (only 1.24.10, 1.25.7, 1.26.8, 1.27.5, and 1.28.11 are) — only the separate 'Upgrade Management Cluster Kubernetes Version' table mentions it, as an alternate stop between 1.27.5 and 1.28.11. If you're genuinely at 1.28.4, this is that table's documented next hop; confirm against the live compatibility page."
+      },
+      "tkgRelease": {
+        "1.24.10": "2.1.1",
+        "1.25.7": "2.2.0",
+        "1.26.8": "2.3.1",
+        "1.27.5": "2.4.1",
+        "1.28.11": "2.5.2"
+      },
+      "tkgReleaseNote": "From the 'Management Cluster (vX) (TKG Y)' headers in TCA's Workload Cluster Compatibility tables. No table (and so no confirmed TKG release) is published for the transitional management versions 1.28.4 or 1.28.7."
+    },
+    "workload": {
+      "finalTarget": "1.30.2",
+      "chains": {
+        "1.24.10": ["1.24.10", "1.25.13", "1.26.8", "1.27.15", "1.28.11", "1.29.6", "1.30.2"],
+        "1.24.17": ["1.24.17", "1.25.13", "1.26.8", "1.27.11", "1.28.11", "1.29.6", "1.30.2"],
+        "1.25.13": ["1.25.13", "1.26.8", "1.27.15", "1.28.11", "1.29.6", "1.30.2"],
+        "1.26.8": ["1.26.8", "1.27.15", "1.28.11", "1.29.6", "1.30.2"],
+        "1.26.11": ["1.26.11", "1.26.14", "1.27.15", "1.28.11", "1.29.6", "1.30.2"],
+        "1.26.14": ["1.26.14", "1.27.15", "1.28.11", "1.29.6", "1.30.2"],
+        "1.27.8": ["1.27.8", "1.28.11", "1.29.6", "1.30.2"],
+        "1.27.11": ["1.27.11", "1.28.11", "1.29.6", "1.30.2"],
+        "1.27.15": ["1.27.15", "1.28.11", "1.29.6", "1.30.2"],
+        "1.28.4": ["1.28.4", "1.28.11", "1.29.6", "1.30.2"],
+        "1.28.7": ["1.28.7", "1.28.11", "1.29.6", "1.30.2"],
+        "1.28.11": ["1.28.11", "1.29.6", "1.30.2"],
+        "1.29.6": ["1.29.6", "1.30.2"]
+      },
+      "interleave": {
+        "1.24.10": "Interleaved with the management cluster: upgrade management cluster to 1.26.8 before this reaches 1.26.8 too, then to 1.28.11 before this continues past 1.26.8 to 1.27.15. The dedicated TCA 2.3 walkthrough instead names 1.26.14 as an explicit intermediate stop before the same continuation — either satisfies the management table's ’workload clusters at v1.26.8+vmware.1’ requirement, since 1.26.14 exceeds that threshold.",
+        "1.24.17": "Interleaved: upgrade management cluster to 1.26.8 first, then to 1.28.11 (via 1.27.5) before this continues past 1.26.8.",
+        "1.25.13": "Interleaved: upgrade management cluster to 1.26.8 first, then to 1.28.11 (via 1.27.5) before this continues past 1.26.8.",
+        "1.26.8": "Interleaved: upgrade management cluster to 1.28.11 (via 1.27.5) before this continues past 1.26.8.",
+        "1.26.11": "Assumes the management cluster is already at 1.28.4; upgrade it to 1.28.11 alongside this chain.",
+        "1.27.8": "Assumes the management cluster is already at 1.28.4; upgrade it to 1.28.11 alongside this chain.",
+        "1.28.4": "Assumes the management cluster is already at 1.28.4; upgrade it to 1.28.11 alongside this chain.",
+        "1.26.14": "Assumes the management cluster is already at 1.28.7; upgrade it to 1.28.11 alongside this chain.",
+        "1.27.11": "Assumes the management cluster is already at 1.28.7; upgrade it to 1.28.11 alongside this chain.",
+        "1.28.7": "Assumes the management cluster is already at 1.28.7; upgrade it to 1.28.11 alongside this chain.",
+        "1.28.11": "Assumes the management cluster has already reached its target (1.28.11) — no further management cluster hop needed.",
+        "1.29.6": "Assumes the management cluster has already reached its target (1.28.11) — no further management cluster hop needed.",
+        "1.27.15": "Assumes the management cluster has already reached its target (1.28.11) — no further management cluster hop needed."
+      }
+    },
+    "mgmtWorkloadCompat": {
+      "1.24.10": ["1.24.10"],
+      "1.25.7": ["1.24.10"],
+      "1.26.8": ["1.24.10", "1.24.17", "1.25.13", "1.26.8"],
+      "1.27.5": ["1.26.8"],
+      "1.28.11": ["1.26.14", "1.27.15", "1.28.11", "1.29.6", "1.30.2"]
+    },
+    "mgmtWorkloadCompatNote": "From TCA's 'Workload Cluster Compatibility Cluster Operations' tables — each published management cluster version only supports running/upgrading workload clusters within a specific version range. No table is published for management cluster 1.28.4 or 1.28.7 (both are pass-through/alternate-entry versions); workload options aren't filtered for those and their compatible range should be confirmed against the live compatibility page."
+  },
+  "3.4": {
+    "tcpTarget": "5.1",
+    "mgmt": {
+      "finalTarget": "1.29.15",
+      "chains": {
+        "1.28.11": ["1.28.11", "1.29.15"]
+      },
+      "notes": {}
+    },
+    "workload": {
+      "finalTarget": "1.33.1",
+      "chains": {
+        "1.27.15": ["1.27.15", "1.27.16", "1.28.15", "1.29.15", "1.30.13", "1.31.9", "1.32.5", "1.33.1"],
+        "1.28.11": ["1.28.11", "1.28.15", "1.29.15", "1.30.13", "1.31.9", "1.32.5", "1.33.1"],
+        "1.29.6": ["1.29.6", "1.29.15", "1.30.13", "1.31.9", "1.32.5", "1.33.1"],
+        "1.30.2": ["1.30.2", "1.30.13", "1.31.9", "1.32.5", "1.33.1"]
+      },
+      "interleave": {
+        "1.27.15": "Interleaved with the management cluster: upgrade management cluster to 1.29.15 before this continues past 1.27.16.",
+        "1.28.11": "Interleaved with the management cluster: upgrade management cluster to 1.29.15 before this continues past 1.28.15.",
+        "1.29.6": "Interleaved with the management cluster: upgrade management cluster to 1.29.15 before this continues past 1.29.15.",
+        "1.30.2": "Interleaved with the management cluster: upgrade management cluster to 1.29.15 first."
+      },
+      "prerequisite": "Ensure workload clusters are already at Kubernetes 1.27.15 (on your current TCA 3.2/3.3 release) before starting migration to TCA 3.4. Also upgrade any Network Function to a version compatible with both Photon OS 3 and Photon OS 5 first, to avoid node customization failures and network downtime."
+    }
+  }
+}

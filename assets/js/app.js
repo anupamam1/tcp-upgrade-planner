@@ -1,4 +1,4 @@
-import { loadData, buildPlan, availableComponents, sourcesFor, intermediatesFor, targets, allSourcesFor, editionsFor, componentCaveat, docUrl } from "./planner.js?v=32";
+import { loadData, buildPlan, availableComponents, sourcesFor, intermediatesFor, targets, allSourcesFor, editionsFor, componentCaveat, docUrl, k8sVersionsFor, k8sChainFor, compatibleWorkloadVersions, tkgReleaseFor, tcaSourcesFor, k8sDefaultsForTca } from "./planner.js?v=37";
 
 const el = (id) => document.getElementById(id);
 const DONE_KEY = "tcp-upgrade-done";
@@ -8,6 +8,7 @@ let currentPlan = null;
 let phaseIndex = 0;
 let fullStackOn = true;
 let sourceChoice = {}; // componentId -> user-picked current version (when the guide lists several)
+let k8sChoice = { mgmt: null, workload: null }; // phase -> user-picked current Kubernetes version
 let doneSet = new Set(JSON.parse(localStorage.getItem(DONE_KEY) || "[]"));
 
 function saveDone() {
@@ -84,6 +85,7 @@ function setStepsVisible(upTo) {
 function onSourceChange() {
   const source = el("source").value;
   sourceChoice = {}; // new source release => reset per-component version picks
+  k8sChoice = { mgmt: null, workload: null };
   if (!source) { setStepsVisible(1); el("generate").disabled = true; return; }
 
   // Destinations reachable from this source (some edition supports it).
@@ -102,6 +104,7 @@ function onSourceChange() {
 function onDestChange() {
   const source = el("source").value;
   const target = el("destination").value;
+  k8sChoice = { mgmt: null, workload: null }; // Kubernetes hop tables are target-specific
   if (!target) { setStepsVisible(2); el("generate").disabled = true; return; }
 
   // Workload types valid for this source+destination.
@@ -130,9 +133,46 @@ function onEditionChange() {
   note.innerHTML = `Path: <strong>${escape(routeString(edition, source, target))}</strong>`;
 
   renderComponents(edition, source, target);
+  applyTcaK8sDefaultsAndRefresh(target); // seed the Kubernetes pickers from the (nominal or overridden) TCA version
   setStepsVisible(4);
-  el("generate").disabled = false;
+  validateGenerate();
 }
+
+// The current TCA version in effect: the user's override if they picked one on the TCA row,
+// otherwise the nominal version implied by the TCP source.
+function currentTcaVersion() {
+  return sourceChoice["tca"] || DATA.versions.components.tca?.[el("source").value];
+}
+
+// Some TCA versions have a guide-confirmed, single fixed starting Kubernetes version (e.g. TCA
+// 2.3 must already be at 1.24.10) — pre-fill the mgmt/workload pickers with it so the user
+// doesn't have to look up a raw Kubernetes patch number themselves. Always resets both pickers
+// (rather than only filling blanks) so a changed TCA selection doesn't leave a stale, likely-
+// mismatched Kubernetes choice behind. TCA versions without a documented fixed value (3.1/3.2/
+// 3.3) clear back to manual selection.
+function applyTcaK8sDefaultsAndRefresh(target) {
+  const defaults = k8sDefaultsForTca(DATA, target, currentTcaVersion());
+  k8sChoice.mgmt = defaults?.mgmt || null;
+  k8sChoice.workload = defaults?.workload || null;
+
+  const mgmtSel = document.querySelector('.ck-k8ssel[data-phase="mgmt"]');
+  if (mgmtSel) {
+    mgmtSel.value = k8sChoice.mgmt || "";
+    const wrap = mgmtSel.closest(".ck-k8s");
+    const existingNote = wrap.querySelector(".ck-k8s-note");
+    if (existingNote) existingNote.remove();
+    if (defaults) {
+      mgmtSel.insertAdjacentHTML("afterend", `<span class="ck-k8s-note">(auto-filled: TCA ${escape(currentTcaVersion())} environments start here — change if yours differs)</span>`);
+    }
+  }
+  refreshWorkloadPicker(target);
+  refreshMgmtTkgLabel(target);
+  validateGenerate();
+}
+
+// Components whose exact upgrade path depends on the user's current Kubernetes version,
+// mapped to the k8s-hops.json phase key ("mgmt" or "workload") that applies to them.
+const K8S_PICKER_PHASE = { "tkg-mgmt": "mgmt", "tkg-workload": "workload" };
 
 function renderComponents(edition, source, target) {
   const comps = availableComponents(DATA, edition, source);
@@ -154,29 +194,156 @@ function renderComponents(edition, source, target) {
   el("components").innerHTML = html;
   const master = el("fsMaster");
   if (master) master.addEventListener("change", () => { fullStackOn = master.checked; renderComponents(edition, source, target); });
-  // Current-version dropdowns: remember the choice.
+  // Current-version dropdowns: remember the choice. Changing TCA's re-seeds the Kubernetes
+  // pickers, since a different TCA source implies a different (or no longer known) starting
+  // Kubernetes version.
   document.querySelectorAll(".ck-srcsel").forEach((sel) => {
-    sel.addEventListener("change", () => { sourceChoice[sel.dataset.comp] = sel.value; });
+    sel.addEventListener("change", () => {
+      sourceChoice[sel.dataset.comp] = sel.value;
+      if (sel.dataset.comp === "tca") applyTcaK8sDefaultsAndRefresh(target);
+    });
   });
+  // Current-Kubernetes-version dropdowns (Tanzu Management/Workload Cluster): required once checked.
+  // The workload picker's options depend on the chosen management version — see refreshWorkloadPicker.
+  document.querySelectorAll(".ck-k8ssel").forEach((sel) => {
+    sel.addEventListener("change", () => {
+      k8sChoice[sel.dataset.phase] = sel.value || null;
+      if (sel.dataset.phase === "mgmt") { refreshWorkloadPicker(target); refreshMgmtTkgLabel(target); }
+      validateGenerate();
+    });
+  });
+  refreshWorkloadPicker(target); // populate/restore the workload picker's filtered options
+  document.querySelectorAll('#components input[data-comp]').forEach((cb) => {
+    cb.addEventListener("change", validateGenerate);
+  });
+  validateGenerate();
+}
+
+// The workload Kubernetes-version picker's valid options depend on the chosen management
+// cluster version (TCA's "Workload Cluster Compatibility" tables). Rebuilds its <option> list
+// in place — called on initial render and whenever the management picker changes.
+function refreshWorkloadPicker(target) {
+  const sel = document.querySelector('.ck-k8ssel[data-phase="workload"]');
+  if (!sel) return;
+  const wrap = sel.closest(".ck-k8s");
+  const existingNote = wrap.querySelector(".ck-k8s-note");
+  if (existingNote) existingNote.remove();
+
+  const allOpts = k8sVersionsFor(DATA, target, "workload");
+  const mgmtChosen = k8sChoice.mgmt;
+  if (!mgmtChosen) {
+    sel.disabled = true;
+    sel.innerHTML = `<option value="">— select management cluster version first —</option>`;
+    k8sChoice.workload = null;
+    return;
+  }
+
+  const compat = compatibleWorkloadVersions(DATA, target, mgmtChosen);
+  const opts = compat || allOpts;
+  sel.disabled = false;
+  const chosen = k8sChoice.workload && opts.includes(k8sChoice.workload) ? k8sChoice.workload : "";
+  k8sChoice.workload = chosen || null;
+  sel.innerHTML = `<option value="">— select —</option>` +
+    opts.map((o) => `<option value="${o}" ${o === chosen ? "selected" : ""}>${escape(o)}</option>`).join("");
+
+  const msg = compat
+    ? `only versions compatible with management cluster ${mgmtChosen} are shown`
+    : `no published compatibility data for management cluster ${mgmtChosen} — showing all workload versions; confirm compatibility against the live page`;
+  sel.insertAdjacentHTML("afterend", `<span class="ck-k8s-note">(${escape(msg)})</span>`);
+}
+
+// The management cluster's TKG release is precise once a Kubernetes version is chosen (TCA
+// publishes a distinct TKG sub-release per management version) — updates the row in place.
+function tkgTargetLabel(target) {
+  return DATA.versions.targets?.[target]?.["tkg-mgmt"] || DATA.versions.components["tkg-mgmt"]?.[target] || target;
+}
+
+// Don't show the (fixed, known) target release until the source is also known — a one-sided
+// "→ 2.5.2" reads as a finished answer even though it's only half the picture. And once a
+// version IS chosen, distinguish "not published for this one" (e.g. 1.28.7/1.28.4, which never
+// get a TKG label in the guide) from "nothing chosen yet" — those are different states and were
+// previously showing the same misleading "select below" message even after a pick was made.
+function mgmtTkgLabelHTML(target) {
+  const tkgSrc = tkgReleaseFor(DATA, target, k8sChoice.mgmt);
+  const tgt = tkgTargetLabel(target);
+  if (tkgSrc) return `TKG release ${escape(tkgSrc)} &rarr; ${escape(tgt)}`;
+  if (k8sChoice.mgmt) {
+    return `TKG release: <span class="ck-k8s-note">not published by the guide for Kubernetes ${escape(k8sChoice.mgmt)}</span> &rarr; ${escape(tgt)}`;
+  }
+  return `TKG release: <span class="ck-k8s-note">select your current Kubernetes version below</span>`;
+}
+
+function refreshMgmtTkgLabel(target) {
+  const span = document.querySelector(".ck-tkgver");
+  if (!span) return;
+  span.innerHTML = mgmtTkgLabelHTML(target);
+}
+
+// Blocks Generate until every checked tkg-mgmt/tkg-workload row has a Kubernetes version chosen
+// (only when this target/phase actually has a compatibility table — falls back to the static
+// per-TCP-source caveat otherwise, so a future target without k8s-hops data never gets stuck).
+function validateGenerate() {
+  const checked = new Set([...document.querySelectorAll('#components input[data-comp]:checked')].map((c) => c.dataset.comp));
+  let missing = false;
+  for (const [compId, phase] of Object.entries(K8S_PICKER_PHASE)) {
+    if (!checked.has(compId)) continue;
+    const sel = document.querySelector(`.ck-k8ssel[data-phase="${phase}"]`);
+    if (!sel) continue; // no compatibility table for this target/phase — nothing to require
+    const ok = !!k8sChoice[phase];
+    sel.classList.toggle("ck-k8s-missing", !ok);
+    if (!ok) missing = true;
+  }
+  el("generate").disabled = missing;
+}
+
+function ckK8sPicker(componentId, target) {
+  const phase = K8S_PICKER_PHASE[componentId];
+  if (!phase) return "";
+  const opts = k8sVersionsFor(DATA, target, phase);
+  if (!opts.length) return "";
+  // Workload's <option> list is filled in by refreshWorkloadPicker (depends on the mgmt pick).
+  if (phase === "workload") {
+    return `<div class="ck-k8s">Current Kubernetes version: <select class="ck-k8ssel" data-phase="workload" required></select></div>`;
+  }
+  const chosen = k8sChoice[phase] || "";
+  const options = `<option value="">— select —</option>` +
+    opts.map((o) => `<option value="${o}" ${o === chosen ? "selected" : ""}>${escape(o)}</option>`).join("");
+  return `<div class="ck-k8s">Current Kubernetes version: <select class="ck-k8ssel" data-phase="${phase}" required>${options}</select></div>`;
 }
 
 function ckRow(c, target) {
   const tgt = DATA.versions.targets?.[target]?.[c.id] || DATA.versions.components[c.id]?.[target] || target;
-  const opts = parseVersions(c.sourceVersion);
+  // TCA: the TCP source implies a single nominal TCA version, but the guide documents several
+  // valid TCA sources for this target independent of that mapping — offer the full override
+  // list (not just "/"-separated alternates for this exact TCP source) in case the live
+  // environment's TCA patch has drifted from the nominal bundle.
+  const opts = c.id === "tca" ? tcaSourcesFor(DATA, target) : parseVersions(c.sourceVersion);
   let ver;
   if (opts.length > 1) {
     // The guide lists several possible source versions — let the user pick which they're on.
-    const chosen = sourceChoice[c.id] || opts[0];
+    const chosen = sourceChoice[c.id] || c.sourceVersion || opts[0];
     const options = opts.map((o) => `<option ${o === chosen ? "selected" : ""}>${escape(o)}</option>`).join("");
-    ver = `<span class="ck-ver ck-pick" title="Select your current version"><select class="ck-srcsel" data-comp="${c.id}">${options}</select> &rarr; ${escape(tgt)}</span>`;
+    const title = c.id === "tca" ? "Override if your live TCA patch differs from the version implied by your TCP source" : "Select your current version";
+    ver = `<span class="ck-ver ck-pick" title="${title}"><select class="ck-srcsel" data-comp="${c.id}">${options}</select> &rarr; ${escape(tgt)}</span>`;
   } else {
     ver = `<span class="ck-ver">${verSpan(c.sourceVersion, tgt)}</span>`;
+  }
+  // Disambiguate from the "Current Kubernetes version" picker below: this line is the Tanzu
+  // Kubernetes Grid product release, not the Kubernetes version running inside the cluster.
+  // Management: TCA publishes a distinct TKG sub-release per Kubernetes version, so this is
+  // precise once a version is picked (see refreshMgmtTkgLabel). Workload: no such per-version
+  // label is published, so this stays the coarse, nominal TCP-level bookend.
+  if (c.id === "tkg-mgmt") {
+    ver = `<span class="ck-ver ck-tkgver" title="Tanzu Kubernetes Grid release matching your chosen Kubernetes version">${mgmtTkgLabelHTML(target)}</span>`;
+  } else if (c.id === "tkg-workload") {
+    ver = `<span class="ck-ver" title="Nominal Tanzu Kubernetes Grid release for this TCP upgrade overall — TCA doesn't publish a distinct TKG label per workload Kubernetes version the way it does for the management cluster">TKG release (nominal) ${verSpan(c.sourceVersion, tgt)}</span>`;
   }
   const lock = c.mandatory ? ` <span class="ck-lock" title="Mandatory dependency — cannot be skipped">Required</span>` : "";
   const gate = !c.mandatory && c.gate ? `<span class="ck-gate">${escape(c.gate)}</span>` : "";
   const dis = c.mandatory ? "checked disabled" : "checked";
   const id = `ck-${c.id}`;
-  return `<div class="ck${c.mandatory ? " locked" : ""}"><input type="checkbox" id="${id}" data-comp="${c.id}" ${dis}/> <label class="ck-name" for="${id}">${escape(c.name)}${lock}</label>${ver}${gate}</div>`;
+  const k8sPicker = ckK8sPicker(c.id, target);
+  return `<div class="ck${c.mandatory ? " locked" : ""}"><input type="checkbox" id="${id}" data-comp="${c.id}" ${dis}/> <label class="ck-name" for="${id}">${escape(c.name)}${lock}</label>${ver}${gate}${k8sPicker}</div>`;
 }
 
 // ---------- Generate ----------
@@ -186,6 +353,17 @@ function showWizard() {
   el("contentActions").hidden = true;
   el("runbook").innerHTML = "";
   el("wizardCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// Format a k8sChainFor() result into the same string-array shape the static componentCaveats
+// use, so it renders through the existing listSection/mdList path.
+function formatK8sChain(result, label) {
+  const hops = result.waypoints;
+  const out = [`Computed from TCA's compatibility table for your current ${label} Kubernetes version (${hops[0]} → ${result.finalTarget}):`];
+  for (let i = 0; i < hops.length - 1; i++) out.push(`${i + 1}. ${hops[i]} → ${hops[i + 1]}`);
+  if (result.prerequisite) out.push(`Prerequisite: ${result.prerequisite}`);
+  if (result.note) out.push(result.note);
+  return out;
 }
 
 function generate() {
@@ -199,6 +377,15 @@ function generate() {
   currentPlan = buildPlan(DATA, edition, source, target, selected);
   // Apply the user's chosen current version so each phase reads "<chosen> → <target>".
   currentPlan.cards.forEach((card) => { if (sourceChoice[card.id]) card.sourceVersion = sourceChoice[card.id]; });
+  // Replace the static per-TCP-source caveat with the exact computed hop chain for the
+  // Tanzu phases, using the Kubernetes version the user picked in the wizard.
+  for (const [compId, phase] of Object.entries(K8S_PICKER_PHASE)) {
+    const card = currentPlan.cards.find((c) => c.id === compId);
+    const chosen = k8sChoice[phase];
+    if (!card || !chosen) continue;
+    const result = k8sChainFor(DATA, target, phase, chosen);
+    if (result) card.k8sChain = formatK8sChain(result, phase === "mgmt" ? "management cluster" : "workload cluster");
+  }
   phaseIndex = 0;
   // Start every generated runbook fresh — no carry-over of completion from a previous run.
   doneSet = new Set();
@@ -242,7 +429,7 @@ function phaseBodyHTML(card) {
   let body = "";
   if (card.summary) body += `<p class="intro">${escape(card.summary)}</p>`;
   if (card.conditional) body += calloutSection("Applies only if", card.conditional, "cond");
-  const cav = currentPlan && componentCaveat(DATA, currentPlan.target, currentPlan.source, card.id);
+  const cav = card.k8sChain || (currentPlan && componentCaveat(DATA, currentPlan.target, currentPlan.source, card.id));
   if (Array.isArray(cav)) body += listSection("Required version sequence", cav, "impact");
   else if (cav) body += calloutSection("Required version sequence", cav, "impact");
   if (card.kind === "checklist") body += listSection("Checklist", card.checklist, "checklist-sec");
@@ -495,7 +682,7 @@ function planToMarkdown(plan) {
     out.push(`## Phase ${i + 1}: ${card.title}${doneSet.has(card.id) ? " ✅" : ""}`);
     if (card.kind !== "checklist") out.push(`_Version: ${card.sourceVersion && card.sourceVersion !== "NA" ? card.sourceVersion + " → " : "→ "}${card.targetVersion}_`);
     if (card.conditional) out.push(`> **Conditional:** ${card.conditional}`);
-    const cav = componentCaveat(DATA, plan.target, plan.source, card.id);
+    const cav = card.k8sChain || componentCaveat(DATA, plan.target, plan.source, card.id);
     if (Array.isArray(cav)) out.push(...mdList("Required version sequence", cav));
     else if (cav) out.push(`> **Required version sequence:** ${cav}`);
     if (card.summary) out.push("", card.summary, "");
