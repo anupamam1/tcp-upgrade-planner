@@ -75,7 +75,7 @@
   },
   "tca": {
     "title": "Upgrade Telco Cloud Automation to {target}",
-    "summary": "Upgrade TCA Manager and TCA Control Plane to {target}. Supported paths to 3.3.0.1: 3.3, 3.2, 3.1.1, 3.1, and 2.3. The official guide has the exact upgrade steps; the points below are the planning context and order.",
+    "summary": "Upgrade TCA Manager and TCA Control Plane to {target}. The supported source TCA releases vary by target TCP version — see the official guide's 'supports the following Telco Cloud Automation upgrade paths' list for the exact set. The points below are the planning context and order.",
     "prerequisites": [
       "Components of the current TCA release are activated.",
       "TCA Manager and TCA Control Plane appliances are backed up.",
@@ -87,7 +87,8 @@
       "If an Airgap server exists, upgrade it to {target} first.",
       "After upgrade, verify the dashboard shows {target} and all services are up.",
       "Update the existing Harbor with ca.crt under TCA Manager > Infrastructure > Partner Systems (private CA-signed/self-signed certificates only).",
-      "Calico add-on update may appear on workload clusters after 3.2 → 3.3.0.1 — recommended, but may cause a minor service fluctuation."
+      "Calico add-on update may appear on workload clusters after 3.2 → 3.3.0.1 — recommended, but may cause a minor service fluctuation.",
+      "Your TCA source version is implied by the TCP source release you picked in this planner (see the Components matrix' TCA row) — there's no separate TCA-version selector. If your live environment's TCA patch differs from that mapping, treat the TCP source closest to your actual TCA release as authoritative and cross-check the official TCA upgrade paths list."
     ],
     "snippets": [
       { "label": "Verify services are up (browser)", "note": "Confirm both URLs load after the upgrade.", "commands": ["https://<TCA Manager_FQDN>:9443", "https://<TCA Control Plane_FQDN>:9443"] }
@@ -103,7 +104,10 @@
   "harbor": {
     "title": "Upgrade Harbor for CNFs to {target}",
     "summary": "Harbor is the registry for CNF Helm charts and container images, deployed and upgraded as a CNF through TCA. Follow the Harbor for CNFs Deployment and Configuration Guide for the upgrade procedure.",
-    "considerations": ["Applicable only when Harbor was deployed as a CNF in TCP 4.0.1 or later.", "Download Harbor for CNFs from Drivers & Tools on the TCP Advanced downloads page."],
+    "considerations": [
+      "Upgrading Harbor through TCA is only supported if Harbor was originally deployed as a CNF using TCA (starting with TCP 4.0.1) — not for Harbor instances deployed outside TCA or on TCP releases earlier than 4.0.1.",
+      "Download Harbor for CNFs from Drivers & Tools on the TCP Advanced downloads page."
+    ],
     "snippets": [
       { "label": "Airgap only — push Harbor CNF charts/images to the Airgap Harbor registry", "note": "Reference snippet from the Harbor for CNFs guide — verify against the linked doc. The harborcnf project must be pre-created; pass.txt holds the airgap Harbor password, ca.crt its certificate.", "commands": ["tar -xvf Harbor-For-CNFs-<harbor_version>-<build_number>.tgz", "cd bin/scripts", "./push-harbor-artifacts.sh [-i <image-tar-dir>] [-h <helm-oci-chart-dir>] [-r <harbor-fqdn>:<port>] [-p <project>] [-u <user>] [-f <password-file>] [-c <ca-cert-file>]", "# Example (from the guide):", "./push-harbor-artifacts.sh -i /tmp/images/ -h /tmp/helm/ -r airgap5.dc2.vmw:8043 -p harborcnf -u admin -f /tmp/pass.txt -c /tmp/ca.crt"] }
     ],
@@ -142,7 +146,13 @@
     ],
     "impact": "Rolling control-plane/node replacement on the management cluster.",
     "rollback": "Follow TKG/TCA cluster recovery guidance; clusters are upgraded in place.",
-    "considerations": ["Upgrade each Tanzu Kubernetes management cluster sequentially before proceeding."],
+    "considerations": [
+      "Upgrade each Tanzu Kubernetes management cluster sequentially before proceeding.",
+      "Large Kubernetes version jumps (e.g. from an older TCP release) may not be a single hop — TCA's 'Upgrade Management Cluster Kubernetes Version' compatibility table lists mandatory intermediate versions. Check it against your current cluster version before starting.",
+      "A management cluster crossing Kubernetes 1.27 moves its node OS from Photon OS 3 to Photon OS 5 — see the Tanzu Kubernetes Workload Cluster phase for the CNF/CSAR impact.",
+      "Certificate renewal is automatically enabled (90-day default) whenever a management cluster is upgraded.",
+      "Before starting: customizations from previous CNF instantiate/upgrade operations on nodepools are preserved, but manual changes made directly on nodes are not. Applications may see downtime and clusters may take time to become available during the upgrade. Control-plane and worker node IP addresses change after upgrade. If an upgrade fails, correct the configuration and retry."
+    ],
     "doc": "https://techdocs.broadcom.com/us/en/vmware-tnz/telco-cloud-automation.html"
   },
   "tkg-workload": {
@@ -157,7 +167,11 @@
     "rollback": "Follow TKG/TCA cluster recovery guidance; clusters are upgraded in place.",
     "considerations": [
       "Upgrade each workload cluster, then confirm all pods are up and running.",
-      "After upgrade, update the Kubernetes version in the cluster templates: TCA UI > Infrastructure > CaaS Infrastructure > Cluster templates (edit templates showing compatibility errors)."
+      "After upgrade, update the Kubernetes version in the cluster templates: TCA UI > Infrastructure > CaaS Infrastructure > Cluster templates (edit templates showing compatibility errors).",
+      "Large Kubernetes version jumps may not be a single hop — TCA's 'Upgrade Workload Cluster Kubernetes Version' compatibility table lists mandatory intermediate versions, staged alongside the management cluster's progress.",
+      "A workload cluster crossing Kubernetes 1.27 moves its node OS from Photon OS 3 to Photon OS 5 (TCA 'Migrating from Photon OS 3 to Photon OS 5'). CNFs with custom kernel packages/drivers (DPDK, SR-IOV) need CSAR updates: vfio_pci.disable_resets is renamed vfio_pci_core.disable_resets on Photon 5, driver package naming changes, and CSARs should carry conditional infra_requirements per OS during the transition.",
+      "Certificate renewal is automatically enabled (90-day default) whenever a workload cluster is upgraded.",
+      "Check and upgrade the required node pools in the workload cluster. Control-plane and worker node IP addresses change after upgrade, and applications may see downtime while the cluster is unavailable. If an upgrade fails, correct the configuration and retry."
     ],
     "doc": "https://techdocs.broadcom.com/us/en/vmware-tnz/telco-cloud-automation.html"
   },
@@ -248,9 +262,18 @@
       "Network: VLANs inter-routable; ESXi uplinks functioning; MTU correct on physical switches; NTP/DHCP/DNS reachable; external connectivity and external Harbor (if used) reachable.",
       "Compute: log in to each host client; no warnings or alerts on the Host Client UI.",
       "Storage: vSAN accessible and healthy.",
-      "NFVI & VIM: management and resource vCenter Servers accessible; cluster properties correct; all vSphere Distributed Switches working with matching MTU; root password expiry per policy; NTP configured on all TCP components.",
-      "VMware Cloud Director: accessible via Avi Load Balancer and individual cell FQDN; registered with vCenter and configured with NSX.",
-      "NSX: Manager and component connection status green; no critical alerts; all edge nodes and ESXi hosts connected."
+      "NFVI & VIM — vCenter: management and resource vCenter Servers accessible; cluster properties correct; all vSphere Distributed Switches working with matching MTU; root password expiry per policy; NTP configured on all TCP components.",
+      "NFVI & VIM — VMware Cloud Director: accessible via Avi Load Balancer and individual cell FQDN; registered with vCenter and configured with NSX.",
+      "NFVI & VIM — NSX: Manager and component connection status green; no critical alerts or warnings; all edge nodes and ESXi hosts connected and operational; ESXi/edge node password expiry and account policies (admin, root, audit) meet company/security policy; TEP connectivity validated; sufficient TEP IP pools (edge and host) available for future deployments.",
+      "Airgap Server: accessible, and its Harbor server is ready with all repositories and Helm charts.",
+      "Aria Automation Orchestrator: accessible, and you can run workflows.",
+      "Tanzu Kubernetes Cluster: all pods in the management and workload clusters are up and running; users can instantiate new CNFs and deploy new Tanzu Kubernetes clusters; run diagnostics on clusters through the TCA UI; verify and fix alerts on the TCA dashboard.",
+      "Operations Management — Aria Operations for Logs: accessible; syslog data is actively collected and stored; configured content pack components are accessible.",
+      "Operations Management — Aria Operations: accessible; all configured management components are accessible.",
+      "Operations Management — Aria Operations for Networks: accessible; network data is actively received and stored.",
+      "Business Continuity & DR — Live Site Recovery: successfully upgraded on the protected (management cluster) and recovery sites and the sites are paired; the pair appears on the LSR home page; LSR is accessible from both sites.",
+      "Business Continuity & DR — vSphere Replication: successfully upgraded on the protected (management pod) and recovery sites and the sites are paired; vSphere Replication servers are registered with their respective vCenter Servers on both sites.",
+      "Delete Snapshots: once every component above is verified working as expected, delete the snapshots taken before the upgrade."
     ],
     "doc": "https://techdocs.broadcom.com/us/en/vmware-tnz/telco-cloud-platform.html"
   }

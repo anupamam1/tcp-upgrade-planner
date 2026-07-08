@@ -3,7 +3,8 @@
   "guidePath": "telco-cloud-platform-upgrade-guide",
   "upgradingPath": "upgrading-telco-cloud-platform-5g-edition-from-2-0-to-2-1",
   "versionSlug": {
-    "5.0.2": "5-0-2"
+    "5.0.2": "5-0-2",
+    "5.1": "5-1"
   },
   "guidePages": {
     "home": "telco-cloud-platform-upgrade-guide.html",

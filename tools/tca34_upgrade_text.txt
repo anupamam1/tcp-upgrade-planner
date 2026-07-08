@@ -1,0 +1,271 @@
+Migrating from Photon OS 3 to Photon OS 5
+This chapter includes details on updating the CSAR for CNF applications as part of migration from Photon OS 3 to Photon
+OS 5.
+
+Kernel configuration parameter changes between Photon 3 & Photon 5
+Photon 3 supports a kernel configuration parameter, vfio_pci.disable_resets, which can be used to suppress PCI resets
+issued when using vfio_pci binding with TCP-RAN.
+With Photon 5, this parameter has a different module name, and is now called vfio_pci_core.disable_resets. If the
+parameter is used with Photon 3, vendor CSARs should change the parameter accordingly for Photon 5.
+
+Driver Naming Convention (Photon 3 vs. Photon 5)
+In VMware Telco Cloud Automation 3.4, the driver naming convention has changed for Photon 3 and Photon 5.
+Notice that the names and versions for packages with linux-rt-drivers-intel are specified differently for Photon 5
+and Photon 3.
+Photon 3
+
+    type=[ice/iavf/i40e]
+
+    -name: linux-rt-drivers-intel-[type]-[driver-version]
+    version: [kernel-version]
+
+
+    ex.
+
+
+    packages:
+    - name: linux-rt-drivers-intel-ice-1.13.7
+    version: 4.19.305-3.ph3
+    - name: linux-rt-drivers-intel-iavf-4.9.5
+    version: 4.19.305-3.ph3
+    - name: linux-rt-drivers-intel-i40e-2.22.18
+    version: 4.19.305-3.ph3
+
+
+Photon 5
+
+
+
+VMware by Broadcom                                                                                                                  689
+                                                                                              VMware Telco Cloud Automation 3.4
+
+
+ type=[ice/iavf/i40e]
+
+ -name: linux-rt-drivers-intel-[type]
+ version: [driver-version]-[spec-release]
+
+ ex.
+
+
+ packages:
+ - name: linux-rt-drivers-intel-ice
+ version: 1.13.7-1
+ - name: linux-rt-drivers-intel-iavf
+ version: 4.9.5-1
+ - name: linux-rt-drivers-intel-i40e
+ version: 2.22.18-1
+
+
+Conditional CSAR
+VMware Telco Cloud Automation 3.4 passes down a new condition schema. This will include infra_requirements for both
+photon 3 and photon 5.
+The following testnf-du example shows two sets of kernel and 2 sets of custom_packages (including 2 sets of kernel_args
+that are not shown):
+
+ topology_template:
+
+
+ node_templates:
+
+
+    testnf:
+
+
+       node_type: tosca.nodes.nfv.VMware.CNF.testnf
+
+
+       properties:
+
+
+         infra_requirements:                 <==== photon 5 related requirements
+
+
+       node_components:
+
+
+            kernel:
+
+
+               kernel_type:
+
+
+                 name: linux-rt
+
+                 version: 6.1.70-5.ph5
+
+
+               kernel_args: ..
+
+
+                custom_packages:
+
+---
+
+Upgrade Management Cluster Kubernetes Version
+You can upgrade the existing Management Cluster to the latest versions supported inVMware Telco Cloud Automation.
+Note: When you upgrade a management cluster to the latest version, the certificate renewal of the cluster is
+automatically enabled and the number of days defaults to 90.
+The following table lists the Kubernetes upgrade compatibility for the Management cluster when upgrading fromVMware
+Telco Cloud Automation.
+
+Current Management Cluster Version               Target Management Cluster Version            Notes
+
+v1.28.11                                         v1.29.15
+
+Before upgrading Kubernetes to the latest version, consider the following constraints and prepare for the upgrade plan:
+• VMware Telco Cloud Automation preserves the customization performed through previous CNF instantiate / upgrade
+    on the nodepools of the cluster. Any manual changes performed directly on the nodes are not preserved.
+•   Applications may face downtime during kubernetes upgrade and may take some time to be available for operations.
+•   Clusters may take some time to be available for operations.
+•   Check and upgrade the required node pools in the Workload cluster.
+•   The IP addresses of control plane nodes and the worker nodes change after upgrade.
+•   If the upgrade fails, you can correct the configuration and perform the upgrade again.
+
+
+Upgrade Workload Cluster Kubernetes Version
+You can upgrade the existing Workload Kubernetes Cluster version to the target versions of Kubernetes supported in the
+current version of theVMware Telco Cloud Automation.
+Note:
+Ensure that the clusters in VMware Telco Cloud Automation 3.2 or 3.3 are upgraded to the 1.27.15 Kubernetes version
+before migrating to VMware Telco Cloud Automation 3.4.
+Note: When you upgrade a workload cluster to the target version, the certificate renewal of the cluster is automatically
+enabled and the number of days defaults to 90.
+The following table lists the Kubernetes upgrade compatibility and upgrade paths for the Workload cluster when upgrading
+fromVMware Telco Cloud Automation.
+
+Current        v1.27.16               v1.28.15         v1.29.15         v1.30.13         v1.31.9          v1.32.5           v1.33.1
+Kubernetes
+Version/Target
+Kubernetes
+Version
+v1.27.15             1. Upgrade       1. Upgrade       1. Upgrade       1. Upgrade       1. Upgrade       1. Upgrade        1. Upgrade
+                     Management       Management       Management       Management       Management       Management        Management
+                     Cluster          Cluster          Cluster          Cluster          Cluster          Cluster           Cluster
+                     v1.28.11->v1.2   v1.28.11->v1.2   v1.28.11->v1.2   v1.28.11->v1.2   v1.28.11->v1.2   v1.28.11->v1.2    v1.28.11->v1.2
+                     9.15             9.15             9.15             9.15             9.15             9.15              9.15
+                     2. Upgrade       2. Upgrade       2. Upgrade       2. Upgrade       2. Upgrade       2. Upgrade        2. Upgrade
+                     Workload         Workload         Workload         Workload         Workload         Workload          Workload
+                     Cluster          Cluster          Cluster          Cluster          Cluster          Cluster           Cluster
+                     v1.27.15->v1.2   v1.27.15-
+                     7.16             >v1.27.16 -
+                                      >v1.28.15
+
+
+
+VMware by Broadcom                                                                                                                         264
+                                                                                                      VMware Telco Cloud Automation 3.4
+
+
+                                               v1.27.15-        v1.27.15-        v1.27.15-        v1.27.15-         v1.27.15-
+                                               >v1.27.16 -      >v1.27.16 -      >v1.27.16 -      >v1.27.16 -       >v1.27.16 -
+                                               >v1.28.15 -      >v1.28.15 -      >v1.28.15 -      >v1.28.15 -       >v1.28.15 -
+                                               >v1.29.15        >v1.29.15 -      >v1.29.15 -      >v1.29.15 -       >v1.29.15 -
+                                                                >v1.30.13        >v1.30.13 -      >v1.30.13 -       >v1.30.13 -
+                                                                                 >v1.31.9         >v1.31.9 ->       >v1.31.9 -
+                                                                                                  v1.32.5           > v1.32.5 ->
+                                                                                                                    v1.33.1
+v1.28.11             NA       1. Upgrade       1. Upgrade       1. Upgrade       1. Upgrade       1. Upgrade        1. Upgrade
+                              Management       Management       Management       Management       Management        Management
+                              Cluster          Cluster          Cluster          Cluster          Cluster           Cluster
+                              v1.28.11->v1.2   v1.28.11->v1.2   v1.28.11->v1.2   v1.28.11->v1.2   v1.28.11->v1.2    v1.28.11->v1.2
+                              9.15             9.15             9.15             9.15             9.15              9.15
+                              2. Upgrade       2. Upgrade       2. Upgrade       2. Upgrade       2. Upgrade        2. Upgrade
+                              Workload         Workload         Workload         Workload         Workload          Workload
+                              Cluster          Cluster          Cluster          Cluster          Cluster           Cluster
+                              v1.28.11 -       v1.28.11 -       v1.28.11-        v1.28.11-        v1.28.11-         v1.28.11-
+                              >v1.28.15        >v1.28.15-       >v1.29.15 -      >v1.29.15-       >v1.29.15-        >v1.29.15-
+                                               >v1.29.15        >v1.30.13        >v1.30.13 -      >v1.30.13-        >v1.30.13-
+                                                                                 >v1.31.9         >v1.31.9 ->       >v1.31.9 -
+                                                                                                  v1.32.5           >v1.32.5 -
+                                                                                                                    >v1.33.1
+v1.29.6              NA       NA               1. Upgrade       1. Upgrade       1. Upgrade       1. Upgrade        1. Upgrade
+                                               Management       Management       Management       Management        Management
+                                               Cluster          Cluster          Cluster          Cluster           Cluster
+                                               v1.28.11->v1.2   v1.28.11->v1.2   v1.28.11->v1.2   v1.28.11->v1.2    v1.28.11->v1.2
+                                               9.15             9.15             9.15             9.15              9.15
+                                               2. Upgrade       2. Upgrade       2. Upgrade       2. Upgrade        2. Upgrade
+                                               Workload         Workload         Workload         Workload          Workload
+                                               Cluster          Cluster          Cluster          Cluster           Cluster
+                                               v1.29.6->v1.29   v1.29.6->v1.30   v1.29.6-         v1.29.6-          v1.29.6-
+                                               .15              .13              >v1.30.13 -      >v1.30.13 -       >v1.30.13-
+                                                                                 >v1.31.9         >v1.31.9          >v1.31.9 -
+                                                                                                                    >v1.32.5 -
+                                                                                                                    >v1.33.1
+v1.30.2              NA       NA               NA               1. Upgrade       1. Upgrade       1. Upgrade      1. Upgrade
+                                                                Management       Management       Management      Management
+                                                                Cluster          Cluster          Cluster         Cluster
+                                                                v1.28.11->v1.2   v1.28.11->v1.2   v1.28.11->v1.2 v1.28.11->v1.2
+                                                                9.15             9.15             9.15            9.15
+                                                                2. Upgrade       2. Upgrade       2. Upgrade      2. Upgrade
+                                                                Workload         Workload         Workload        Workload
+                                                                Cluster          Cluster          Cluster         Cluster
+                                                                v1.30.2->v1.30   v1.30.2->v1.31   v1.30.2->v1.31. v1.30.2->v1.31
+                                                                .13              .9               9->v1.32.5      .9->v1.32.5->v
+                                                                                                                  1.33.1
+
+Note:
+After migrating or upgrading toVMware Telco Cloud Automation 3.4, upgrade the existing management clusters’ add-ons
+and existing workload cluster TCA Bom Release (TBR) to enable new features, such as Cluster Move Operation, and
+avoid network function downtime during cluster upgrading.
+Upgrade Network Function to the version that is compatible with both Photon 3 and Photon 5 before upgrading the
+workload cluster to v1.27.15 to avoid node customization failure and network downtime during cluster upgrading.
+
+
+
+
+VMware by Broadcom                                                                                                                 265
+                                                                                               VMware Telco Cloud Automation 3.4
+
+
+Upgrade 3.2/ 3.3 Cluster to 3.4
+
+Ensure that the clusters version are less than 1.27.15 in VMware Telco Cloud Automation 3.2 or 3.3 are upgraded to the
+1.27.15 k8 version before migrating to VMware Telco Cloud Automation 3.4.
+
+
+
+
+VMware by Broadcom                                                                                                          266
+                                                                              VMware Telco Cloud Automation 3.4
+
+
+The following picture shows the cluster upgrade path from TCA 3.2 or 3.3 to
+
+
+
+
+VMware by Broadcom                                                                                         267
+                                                                                               VMware Telco Cloud Automation 3.4
+
+
+1.   Upgrade Airgap server from TCA 3.2 or 3.3 to 3.4. For more details, see Upgrading the TCA Airgap Appliance.
+2.   Upgrade TCA-M and TCA-CP from 3.2 or 3.3 to 3.4. For more details, see Upgrade the TCA-M and TCA-CP.
+3.   Upgrade the management cluster from 1.28.11 to 1.29.15. For more details, see Upgrading Management Cluster.
+4.   Upgrade the workload cluster from 1.27.15 to 1.28.15. For more details, see Upgrade Workload Cluster.
+5.   Upgrade the workload cluster from 1.28.15 to 1.29.15. For more details, see Upgrade Workload Cluster.
+6.   Upgrade the workload cluster from 1.29.15 to 1.30.13. For more details, see Upgrade Workload Cluster.
+7.   Upgrade the workload cluster from 1.30.13 to 1.31.9. For more details, see Upgrade Workload Cluster.
+8.   Upgrade the workload cluster from 1.31.9 to 1.32.5. For more details, see Upgrade Workload Cluster.
+9.   Upgrade the workload cluster from 1.32.5 to 1.33.1. For more details, see Upgrade Workload Cluster.
+
+
+Working with Kubernetes Cluster Templates
+A Kubernetes cluster template is a blueprint of the Kubernetes cluster and contains the required configuration. Before
+creating a Kubernetes cluster, create a Kubernetes cluster template for deploying the cluster. Using VMware Telco Cloud
+Automation, you can create a Kubernetes cluster template, upload, download, edit, and, use it for deploying multiple
+clusters.
+Note:
+Starting VMware Telco Cloud Automation release 3.4, OVA templates have some enhancement:
+1. Remove the limit of opened files.
+2. Photon-5 based OVA moves the setting in the /etc/sysctl.conf to /etc/sysctl.d/99-sysctl.conf , and
+   remove the file /etc/sysctl.conf .
+When you define the Kubernetes cluster template, select whether it is a Management cluster type or a Workload cluster
+type.
+• Management cluster - A Management cluster is a Kubernetes cluster that performs the role of the primary
+     management and operational center. You use the Management cluster for managing multiple Workload clusters.
+• Workload cluster - The clusters where the actual application resides. Deploy network functions on the Workload
+     clusters.
+When creating a Kubernetes cluster template for a Management cluster or a Workload cluster, you must provide two types
+of configuration information:
+• Master Node and Worker Node Configuration - Here, you specify the details about the master node virtual machine

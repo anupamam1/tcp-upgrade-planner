@@ -43,9 +43,17 @@ data/
   sequence.json            # ordered upgrade sequence per edition (CNF / VNF)
   paths.json               # supported source→target paths + intermediate hops
   steps.json               # detailed per-component upgrade steps
-tools/extract.py          # one-off PDF → text helper used to curate the data
+tools/extract.py          # PDF → text helper (pdftotext -layout) used to curate the data
 .github/workflows/pages.yml
 ```
+
+## Targets
+
+Two destinations are modeled, each curated from its own Broadcom Upgrade Guide PDF:
+
+- **TCP 5.0.2** — sources: 3.0, 4.0, 4.0.1, 5.0, 5.0.1 (+ TCI-CDE 3.0/2.7/2.2 for VNF).
+- **TCP 5.1** — sources: 5.0, 5.0.1 only (+ same TCI-CDE chain). The guide doesn't document a
+  direct path from older releases; upgrade to 5.0.2 first.
 
 > ⚠️ This planner is an aid. **Always confirm against the official Broadcom Techdocs** before
 > executing an upgrade.

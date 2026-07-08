@@ -1,4 +1,4 @@
-import { loadData, buildPlan, availableComponents, sourcesFor, intermediatesFor, targets, allSourcesFor, editionsFor, componentCaveat, docUrl } from "./planner.js?v=31";
+import { loadData, buildPlan, availableComponents, sourcesFor, intermediatesFor, targets, allSourcesFor, editionsFor, componentCaveat, docUrl } from "./planner.js?v=32";
 
 const el = (id) => document.getElementById(id);
 const DONE_KEY = "tcp-upgrade-done";
@@ -243,7 +243,8 @@ function phaseBodyHTML(card) {
   if (card.summary) body += `<p class="intro">${escape(card.summary)}</p>`;
   if (card.conditional) body += calloutSection("Applies only if", card.conditional, "cond");
   const cav = currentPlan && componentCaveat(DATA, currentPlan.target, currentPlan.source, card.id);
-  if (cav) body += calloutSection("Required version sequence", cav, "impact");
+  if (Array.isArray(cav)) body += listSection("Required version sequence", cav, "impact");
+  else if (cav) body += calloutSection("Required version sequence", cav, "impact");
   if (card.kind === "checklist") body += listSection("Checklist", card.checklist, "checklist-sec");
   body += listSection("Prerequisites", card.prerequisites, "prereq");
   body += calloutSection("Service impact", card.impact, "impact");
@@ -495,7 +496,8 @@ function planToMarkdown(plan) {
     if (card.kind !== "checklist") out.push(`_Version: ${card.sourceVersion && card.sourceVersion !== "NA" ? card.sourceVersion + " → " : "→ "}${card.targetVersion}_`);
     if (card.conditional) out.push(`> **Conditional:** ${card.conditional}`);
     const cav = componentCaveat(DATA, plan.target, plan.source, card.id);
-    if (cav) out.push(`> **Required version sequence:** ${cav}`);
+    if (Array.isArray(cav)) out.push(...mdList("Required version sequence", cav));
+    else if (cav) out.push(`> **Required version sequence:** ${cav}`);
     if (card.summary) out.push("", card.summary, "");
     if (card.kind === "checklist") out.push(...mdList("Checklist", card.checklist));
     out.push(...mdList("Prerequisites", card.prerequisites));

@@ -1,5 +1,5 @@
 {
-  "targets": ["5.0.2"],
+  "targets": ["5.0.2", "5.1"],
   "byTarget": {
     "5.0.2": {
       "CNF": { "sources": ["3.0", "4.0", "4.0.1", "5.0", "5.0.1"], "via": {} },
@@ -10,6 +10,114 @@
       "componentCaveats": {
         "TCI-CDE-2.2": {
           "vcd": "Coming from TCI – Cloud Director Edition 2.2, VMware Cloud Director must be upgraded in sequence: 10.3.3.x → 10.4.3 → 10.6.1 (do not skip intermediate versions; 10.6.1 is the 5.0.2 target)."
+        },
+        "3.0": {
+          "tkg-mgmt": [
+            "Coming from TCP 3.0 (TCA 2.3): quoted from the TCA 3.3.0.1 guide's dedicated 'Upgrade 2.3 Cluster to 3.3.0.1' walkthrough — this is not a single-hop Kubernetes upgrade.",
+            "1. Upgrade the Airgap server from TCA 2.3 to 3.3.0.1 first (see the Airgap Server phase).",
+            "2. Upgrade TCA-M and TCA-CP from 2.3 to 3.3.0.1 (see the Telco Cloud Automation phase).",
+            "3. Because this management cluster migrated from TCA 2.3, upgrade its addon first, before upgrading Kubernetes to the next version (per TCA's 'Upgrade Management Cluster Kubernetes Version' compatibility table).",
+            "4. Management cluster 1.24.10 → 1.25.7. 1.25.7 is an immediate version — only an upgrade operation is allowed on it, don't stop there.",
+            "5. Management cluster 1.25.7 → 1.26.8.",
+            "6. All workload clusters must be upgraded to v1.26.8+vmware.1 first (see the Tanzu Kubernetes Workload Cluster phase) before the management cluster proceeds to 1.27.5.",
+            "7. Management cluster 1.26.8 → 1.27.5. 1.27.5 is also an immediate version, requiring continuation to 1.28.11.",
+            "8. Management cluster 1.27.5 → 1.28.11 (the target for TCA 3.3.0.1).",
+            "Note: certificate renewal is automatically enabled (90-day default) whenever a management cluster is upgraded.",
+            "Crossing Kubernetes 1.27 also moves the node OS from Photon OS 3 to Photon OS 5 — see the Tanzu Kubernetes Workload Cluster phase for the CNF/CSAR impact."
+          ],
+          "tkg-workload": [
+            "Coming from TCP 3.0 (TCA 2.3): quoted from the TCA 3.3.0.1 guide's dedicated 'Upgrade 2.3 Cluster to 3.3.0.1' walkthrough — this is not a single-hop Kubernetes upgrade.",
+            "1. Upgrade the Airgap server and TCA-M/TCA-CP from 2.3 to 3.3.0.1 first (see those phases).",
+            "2. Workload cluster 1.24.10 → 1.25.13.",
+            "3. Workload cluster 1.25.13 → 1.26.14.",
+            "4. TCA's management-cluster compatibility table requires workload clusters to reach v1.26.8+vmware.1 before the management cluster proceeds to 1.27.5 — this dedicated workload walkthrough instead shows 1.25.13 → 1.26.14 with no exact 1.26.8 stop, so confirm the precise number against the live 'Upgrade Workload Cluster Kubernetes Version' table for your environment before scheduling the management cluster's 1.27.5 hop.",
+            "5. Workload cluster 1.26.14 → 1.27.15.",
+            "6. Workload cluster 1.27.15 → 1.28.11.",
+            "7. Workload cluster 1.28.11 → 1.29.6.",
+            "8. Workload cluster 1.29.6 → 1.30.2 (the target for TCA 3.3.0.1).",
+            "Crossing Kubernetes 1.27 moves the node OS from Photon OS 3 to Photon OS 5 (TCA 'Migrating from Photon OS 3 to Photon OS 5'): CNFs with custom kernel packages or drivers (e.g. DPDK, SR-IOV) need CSAR updates — vfio_pci.disable_resets is renamed vfio_pci_core.disable_resets on Photon 5, the driver package naming convention changes, and CSARs should carry conditional infra_requirements (os.major=3 vs default) to support both OS versions on mixed clusters during the transition."
+          ]
+        },
+        "4.0.1": {
+          "tkg-mgmt": [
+            "Coming from TCP 4.0.1 (TCA 3.1.1): quoted from the TCA 3.3.0.1 guide's dedicated 'Upgrade 3.1.1 Cluster to 3.3.0.1' walkthrough.",
+            "1. Upgrade the Airgap server from TCA 3.1.1 to 3.3.0.1 first (see the Airgap Server phase).",
+            "2. Upgrade TCA-M and TCA-CP from 3.1.1 to 3.3.0.1 (see the Telco Cloud Automation phase).",
+            "3. Management cluster 1.28.7 → 1.28.11 — mandatory, as 1.28.11 carries required new features."
+          ],
+          "tkg-workload": [
+            "Coming from TCP 4.0.1 (TCA 3.1.1): quoted from the TCA 3.3.0.1 guide's dedicated 'Upgrade 3.1.1 Cluster to 3.3.0.1' walkthrough.",
+            "1. Upgrade the Airgap server and TCA-M/TCA-CP from 3.1.1 to 3.3.0.1 first (see those phases).",
+            "2. Workload cluster 1.26.14 → 1.27.15 (TCA 3.1.1 and TCA 3.2.0 both deliver 1.26.14 as the workload cluster's starting point).",
+            "3. Workload cluster 1.27.11 (if you're specifically on TCA 3.1.1) or 1.27.15 (if on TCA 3.2.0) → 1.28.11 — the guide gives slightly different intermediate numbers per exact TCA patch here; confirm against the live compatibility table.",
+            "4. Workload cluster 1.28.7 (TCA 3.1.1) or 1.28.11 (TCA 3.2.0) → 1.29.6.",
+            "5. Workload cluster 1.29.6 → 1.30.2 (the target for TCA 3.3.0.1).",
+            "Crossing Kubernetes 1.27 moves the node OS from Photon OS 3 to Photon OS 5 (TCA 'Migrating from Photon OS 3 to Photon OS 5'): CNFs with custom kernel packages or drivers (e.g. DPDK, SR-IOV) need CSAR updates — vfio_pci.disable_resets is renamed vfio_pci_core.disable_resets on Photon 5, the driver package naming convention changes, and CSARs should carry conditional infra_requirements (os.major=3 vs default) to support both OS versions on mixed clusters during the transition."
+          ]
+        },
+        "5.0": {
+          "tkg-mgmt": "Coming from TCP 5.0 (TCA 3.2): the TCA 3.3.0.1 guide doesn't have a dedicated hop-chain walkthrough for this exact source (only TCA 2.3 and 3.1.1 get one) — check the live 'Upgrade Management Cluster Kubernetes Version' compatibility table for the exact sequence from your current version.",
+          "tkg-workload": "Coming from TCP 5.0 (TCA 3.2): the guide's TCA 3.1.1 walkthrough notes that TCA 3.1.1 and TCA 3.2.0 both deliver Kubernetes 1.26.14 as the workload cluster's starting point, so your workload clusters likely follow a similar hop sequence (1.26.14 → 1.27.15 → 1.28.11 → 1.29.6 → 1.30.2) — but this overlap is only confirmed for the workload cluster, not the management cluster; check the live 'Upgrade Management/Workload Cluster Kubernetes Version' compatibility tables to confirm before planning. Crossing Kubernetes 1.27 moves the node OS from Photon OS 3 to Photon OS 5 — see TCA's 'Migrating from Photon OS 3 to Photon OS 5' chapter for the CNF/CSAR impact (kernel parameter rename, driver naming convention, conditional infra_requirements)."
+        }
+      }
+    },
+    "5.1": {
+      "CNF": { "sources": ["5.0", "5.0.1"], "via": {} },
+      "VNF": {
+        "sources": ["5.0", "5.0.1", "TCI-CDE-3.0", "TCI-CDE-2.7", "TCI-CDE-2.2"],
+        "via": { "TCI-CDE-2.7": ["TCI-CDE-3.0"] }
+      },
+      "componentCaveats": {
+        "TCI-CDE-2.2": {
+          "vcd": "Coming from TCI – Cloud Director Edition 2.2, VMware Cloud Director must be upgraded in sequence: 10.3.3.x → 10.4.3 → 10.6.1 (do not skip intermediate versions; 10.6.1 is the 5.1 target)."
+        },
+        "5.0": {
+          "tkg-mgmt": [
+            "Coming from TCP 5.0 (TCA 3.2): quoted from the TCA 3.4 guide's dedicated 'Upgrade 3.2/3.3 Cluster to 3.4' walkthrough.",
+            "Prerequisite, while still on TCA 3.2: bring your workload clusters up to Kubernetes 1.27.15 first, using TCA 3.2's own compatibility tables, before starting the migration to TCA 3.4.",
+            "1. Upgrade the Airgap server from TCA 3.2 to 3.4 first (see the Airgap Server phase).",
+            "2. Upgrade TCA-M and TCA-CP from 3.2 to 3.4 (see the Telco Cloud Automation phase).",
+            "3. Management cluster 1.28.11 → 1.29.15 (the target for TCA 3.4).",
+            "Note: certificate renewal is automatically enabled (90-day default) whenever a management cluster is upgraded.",
+            "After upgrading to TCA 3.4, upgrade the management cluster's add-ons to enable new features (e.g. Cluster Move Operation) and avoid network function downtime."
+          ],
+          "tkg-workload": [
+            "Coming from TCP 5.0 (TCA 3.2): quoted from the TCA 3.4 guide's dedicated 'Upgrade 3.2/3.3 Cluster to 3.4' walkthrough.",
+            "Prerequisite, while still on TCA 3.2: bring your workload clusters up to Kubernetes 1.27.15 first, using TCA 3.2's own compatibility tables. Also upgrade any Network Function to a version compatible with both Photon OS 3 and Photon OS 5 before this step, to avoid node customization failures and network downtime.",
+            "1. Upgrade the Airgap server and TCA-M/TCA-CP from 3.2 to 3.4 first (see those phases).",
+            "2. Workload cluster 1.27.15 → 1.28.15.",
+            "3. Workload cluster 1.28.15 → 1.29.15.",
+            "4. Workload cluster 1.29.15 → 1.30.13.",
+            "5. Workload cluster 1.30.13 → 1.31.9.",
+            "6. Workload cluster 1.31.9 → 1.32.5.",
+            "7. Workload cluster 1.32.5 → 1.33.1 (the target for TCA 3.4).",
+            "After upgrading to TCA 3.4, upgrade the workload cluster's TCA BOM Release (TBR) to enable new features and avoid network function downtime.",
+            "Crossing into Photon OS 5 (see TCA 'Migrating from Photon OS 3 to Photon OS 5'): CNFs with custom kernel packages or drivers (e.g. DPDK, SR-IOV) need CSAR updates — vfio_pci.disable_resets is renamed vfio_pci_core.disable_resets on Photon 5, the driver package naming convention changes, and CSARs should carry conditional infra_requirements (os.major=3 vs default) to support both OS versions on mixed clusters during the transition."
+          ]
+        },
+        "5.0.1": {
+          "tkg-mgmt": [
+            "Coming from TCP 5.0.1 (TCA 3.3): quoted from the TCA 3.4 guide's dedicated 'Upgrade 3.2/3.3 Cluster to 3.4' walkthrough (the guide treats TCA 3.2 and 3.3 sources identically here).",
+            "Prerequisite, while still on TCA 3.3: bring your workload clusters up to Kubernetes 1.27.15 first, using TCA 3.3's own compatibility tables, before starting the migration to TCA 3.4.",
+            "1. Upgrade the Airgap server from TCA 3.3 to 3.4 first (see the Airgap Server phase).",
+            "2. Upgrade TCA-M and TCA-CP from 3.3 to 3.4 (see the Telco Cloud Automation phase).",
+            "3. Management cluster 1.28.11 → 1.29.15 (the target for TCA 3.4).",
+            "Note: certificate renewal is automatically enabled (90-day default) whenever a management cluster is upgraded.",
+            "After upgrading to TCA 3.4, upgrade the management cluster's add-ons to enable new features (e.g. Cluster Move Operation) and avoid network function downtime."
+          ],
+          "tkg-workload": [
+            "Coming from TCP 5.0.1 (TCA 3.3): quoted from the TCA 3.4 guide's dedicated 'Upgrade 3.2/3.3 Cluster to 3.4' walkthrough (the guide treats TCA 3.2 and 3.3 sources identically here).",
+            "Prerequisite, while still on TCA 3.3: bring your workload clusters up to Kubernetes 1.27.15 first, using TCA 3.3's own compatibility tables. Also upgrade any Network Function to a version compatible with both Photon OS 3 and Photon OS 5 before this step, to avoid node customization failures and network downtime.",
+            "1. Upgrade the Airgap server and TCA-M/TCA-CP from 3.3 to 3.4 first (see those phases).",
+            "2. Workload cluster 1.27.15 → 1.28.15.",
+            "3. Workload cluster 1.28.15 → 1.29.15.",
+            "4. Workload cluster 1.29.15 → 1.30.13.",
+            "5. Workload cluster 1.30.13 → 1.31.9.",
+            "6. Workload cluster 1.31.9 → 1.32.5.",
+            "7. Workload cluster 1.32.5 → 1.33.1 (the target for TCA 3.4).",
+            "After upgrading to TCA 3.4, upgrade the workload cluster's TCA BOM Release (TBR) to enable new features and avoid network function downtime.",
+            "Crossing into Photon OS 5 (see TCA 'Migrating from Photon OS 3 to Photon OS 5'): CNFs with custom kernel packages or drivers (e.g. DPDK, SR-IOV) need CSAR updates — vfio_pci.disable_resets is renamed vfio_pci_core.disable_resets on Photon 5, the driver package naming convention changes, and CSARs should carry conditional infra_requirements (os.major=3 vs default) to support both OS versions on mixed clusters during the transition."
+          ]
         }
       }
     }
@@ -26,6 +134,8 @@
   "notes": [
     "When upgrading VMware Cloud Director from Telco Cloud Infrastructure 2.2, follow the chained sequence 10.3.3.x > 10.4.3 > 10.6.1.",
     "Telco Cloud Infrastructure – Cloud Director Edition 2.7 must first be upgraded to 3.0 before moving to the target.",
-    "Depending on whether you run CNF or VNF workloads, skip the components that are not relevant to your deployment."
+    "Depending on whether you run CNF or VNF workloads, skip the components that are not relevant to your deployment.",
+    "TCP 5.1 only documents direct upgrades from 5.0 and 5.0.1 (plus the TCI-CDE chains above). If you're on 3.0, 4.0, 4.0.1, or 5.0.2, the guide does not document a direct path to 5.1 — see the 5.0.2 target first.",
+    "TCP 5.1: upgrading Telco Cloud Automation (including Airgap and Harbor), Tanzu Kubernetes Grid, and Avi Load Balancer to the 5.1 targets is mandatory. The remaining components can stay on the versions supported in TCP 5.0 or 5.0.1 unless a specific issue fix requires the newer version."
   ]
 }
