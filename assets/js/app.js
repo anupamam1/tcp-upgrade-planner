@@ -199,8 +199,9 @@ function renderComponents(edition, source, target) {
   // Kubernetes version.
   document.querySelectorAll(".ck-srcsel").forEach((sel) => {
     sel.addEventListener("change", () => {
-      sourceChoice[sel.dataset.comp] = sel.value;
+      sourceChoice[sel.dataset.comp] = sel.value || null;
       if (sel.dataset.comp === "tca") applyTcaK8sDefaultsAndRefresh(target);
+      validateGenerate();
     });
   });
   // Current-Kubernetes-version dropdowns (Tanzu Management/Workload Cluster): required once checked.
@@ -293,6 +294,12 @@ function validateGenerate() {
     sel.classList.toggle("ck-k8s-missing", !ok);
     if (!ok) missing = true;
   }
+  document.querySelectorAll(".ck-srcsel").forEach((sel) => {
+    if (!checked.has(sel.dataset.comp)) { sel.classList.remove("ck-k8s-missing"); return; }
+    const ok = !!sel.value;
+    sel.classList.toggle("ck-k8s-missing", !ok);
+    if (!ok) missing = true;
+  });
   el("generate").disabled = missing;
 }
 
@@ -320,11 +327,15 @@ function ckRow(c, target) {
   const opts = c.id === "tca" ? tcaSourcesFor(DATA, target) : parseVersions(c.sourceVersion);
   let ver;
   if (opts.length > 1) {
-    // The guide lists several possible source versions — let the user pick which they're on.
-    const chosen = sourceChoice[c.id] || c.sourceVersion || opts[0];
-    const options = opts.map((o) => `<option ${o === chosen ? "selected" : ""}>${escape(o)}</option>`).join("");
-    const title = c.id === "tca" ? "Override if your live TCA patch differs from the version implied by your TCP source" : "Select your current version";
-    ver = `<span class="ck-ver ck-pick" title="${title}"><select class="ck-srcsel" data-comp="${c.id}">${options}</select> &rarr; ${escape(tgt)}</span>`;
+    // The guide lists several possible source versions for this component (including TCA, where
+    // the TCP source implies a nominal version but the live environment's patch may have drifted)
+    // — require an explicit pick rather than silently defaulting to one, so the user always
+    // actively confirms what they're actually on (same reasoning as the Kubernetes pickers below).
+    const chosen = sourceChoice[c.id] || "";
+    const options = `<option value="" ${chosen ? "" : "selected"}>— select —</option>` +
+      opts.map((o) => `<option value="${escape(o)}" ${o === chosen ? "selected" : ""}>${escape(o)}</option>`).join("");
+    const title = c.id === "tca" ? "Select your current TCA version (the version implied by your TCP source is listed among the options)" : "Select your current version";
+    ver = `<span class="ck-ver ck-pick" title="${title}"><select class="ck-srcsel" data-comp="${c.id}" required>${options}</select> &rarr; ${escape(tgt)}</span>`;
   } else {
     ver = `<span class="ck-ver">${verSpan(c.sourceVersion, tgt)}</span>`;
   }
@@ -384,7 +395,13 @@ function generate() {
     const chosen = k8sChoice[phase];
     if (!card || !chosen) continue;
     const result = k8sChainFor(DATA, target, phase, chosen);
-    if (result) card.k8sChain = formatK8sChain(result, phase === "mgmt" ? "management cluster" : "workload cluster");
+    if (result) {
+      card.k8sChain = formatK8sChain(result, phase === "mgmt" ? "management cluster" : "workload cluster");
+      // The card's own sourceVersion/targetVersion are the TKG *product* release (e.g. 2.1.1 →
+      // 2.5.2) — keep the Kubernetes version the user actually picked alongside it, since the
+      // summary and phase header otherwise only show the TKG label and lose this entirely.
+      card.k8sVersion = { from: chosen, to: result.finalTarget };
+    }
   }
   phaseIndex = 0;
   // Start every generated runbook fresh — no carry-over of completion from a previous run.
@@ -445,11 +462,13 @@ function phaseBodyHTML(card) {
 function selectionSummaryHTML(plan) {
   const comps = plan.cards.filter((c) => c.kind !== "checklist");
   const hasFS = !!DATA.sequence[plan.edition]?.hasFullStack;
-  const hasInfra = plan.cards.some((c) => ["nsx", "vcenter", "esxi", "vsan", "aria-orchestrator"].includes(c.id));
+  const hasInfra = plan.cards.some((c) => c.fullStack);
   const scope = hasFS ? (hasInfra ? "Full-stack (includes infrastructure layer)" : "CNF layer only") : null;
-  const items = comps.map((c) =>
-    `<div class="sum-item"><span class="sc-name">${escape(c.name)}</span><span class="sc-ver">${verSpan(c.sourceVersion, c.targetVersion)}</span></div>`
-  ).join("");
+  const items = comps.map((c) => {
+    const k8s = c.k8sVersion
+      ? `<span class="sc-ver sc-k8s">Kubernetes ${escape(c.k8sVersion.from)} &rarr; ${escape(c.k8sVersion.to)}</span>` : "";
+    return `<div class="sum-item"><span class="sc-name">${escape(c.name)}</span><span class="sc-vers"><span class="sc-ver">${verSpan(c.sourceVersion, c.targetVersion)}</span>${k8s}</span></div>`;
+  }).join("");
   return `<section class="summary-card">
     <div class="summary-head"><h3>Components to upgrade</h3><span class="sc-count">${comps.length}</span>${scope ? `<span class="sc-scope">${escape(scope)}</span>` : ""}</div>
     <div class="sum-list">${items}</div>
@@ -508,6 +527,7 @@ function renderPhase() {
         <span class="phase-tag">Phase ${phaseIndex + 1} of ${n}${doneSet.has(card.id) ? " · ✓ done" : ""}</span>
         <h3>${escape(card.title)}</h3>
         ${card.kind !== "checklist" ? `<span class="ver">${verSpan(card.sourceVersion, card.targetVersion)}</span>` : ""}
+        ${card.k8sVersion ? `<span class="ver ver-k8s">Kubernetes ${escape(card.k8sVersion.from)} &rarr; ${escape(card.k8sVersion.to)}</span>` : ""}
         ${card.formerly ? `<span class="formerly">formerly ${escape(card.formerly)}</span>` : ""}
       </header>
       <div class="phase-body">${phaseBodyHTML(card)}</div>
@@ -681,6 +701,7 @@ function planToMarkdown(plan) {
   plan.cards.forEach((card, i) => {
     out.push(`## Phase ${i + 1}: ${card.title}${doneSet.has(card.id) ? " ✅" : ""}`);
     if (card.kind !== "checklist") out.push(`_Version: ${card.sourceVersion && card.sourceVersion !== "NA" ? card.sourceVersion + " → " : "→ "}${card.targetVersion}_`);
+    if (card.k8sVersion) out.push(`_Kubernetes: ${card.k8sVersion.from} → ${card.k8sVersion.to}_`);
     if (card.conditional) out.push(`> **Conditional:** ${card.conditional}`);
     const cav = card.k8sChain || componentCaveat(DATA, plan.target, plan.source, card.id);
     if (Array.isArray(cav)) out.push(...mdList("Required version sequence", cav));

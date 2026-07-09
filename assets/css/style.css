@@ -206,6 +206,7 @@ svg { flex: none; }
 .ck-pick { display: inline-flex; align-items: center; gap: 0.3rem; }
 .ck-srcsel { font: inherit; font-size: 0.72rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 0.1rem 0.3rem; max-width: 150px; }
 .ck-srcsel:focus { outline: none; border-color: var(--accent); }
+.ck-srcsel.ck-k8s-missing { border-color: var(--warn); }
 .ck-gate { grid-column: 2 / -1; font-size: 0.74rem; color: var(--ink-dim); }
 .ck-k8s { grid-column: 2 / -1; font-size: 0.74rem; color: var(--ink-dim); display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
 .ck-k8s select { font: inherit; font-size: 0.72rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 0.1rem 0.3rem; }
@@ -244,7 +245,9 @@ svg { flex: none; }
 .sum-list { columns: 2; column-gap: 2rem; }
 .sum-item { display: flex; justify-content: space-between; gap: 0.8rem; font-size: 0.85rem; padding: 0.32rem 0; border-bottom: 1px solid var(--line); break-inside: avoid; }
 .sc-name { color: var(--ink); }
+.sc-vers { display: flex; flex-direction: column; align-items: flex-end; gap: 0.1rem; }
 .sc-ver { color: var(--accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sc-k8s { font-size: 0.76rem; color: var(--ink-dim); }
 
 /* ---------- Phase stepper ---------- */
 .stepper { display: flex; gap: 0; overflow-x: auto; padding: 0.4rem 0 1.3rem; }
