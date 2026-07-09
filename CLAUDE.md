@@ -234,6 +234,88 @@ Telco Cloud Platform to release X.Y" sentence before trusting its filename.
   to the TCP upgrade guide.** Confirm design choices before building. Prefer generic wording (avoid
   "Tanzu" / "Cloud Director" in UI labels and README).
 
+## html2canvas (via html2pdf.js) renders blank for out-of-flow elements — always use normal flow
+`.pdf-holder` (built in `exportPdf()`, app.js) used to be `position: fixed; left: -10000px` — the
+standard "keep it out of the user's sight" trick. **This produces a completely blank PDF capture**,
+confirmed empirically (not just theory) across every out-of-flow variant tried: `position: fixed`
+at `left:-10000px`, `position: fixed` at `top:0;left:0` (no offset), `position: fixed; z-index:-9999`
+(genuinely occluded, so blank is correct there), and `position: absolute` both with and without an
+offset — all blank. Only `position: static` (normal in-flow, the element's default) captured real
+content. The fix: build `.pdf-holder` in normal flow (appended at the end of `<body>`, no special
+positioning), and mask the inevitable brief on-screen appearance with a full-viewport
+`.pdf-overlay` ("Generating PDF…") at a high z-index — the overlay being visually on top doesn't
+affect html2canvas's capture of `.pdf-holder`, since it renders that target element's own DOM
+subtree, not a literal screen grab. If you ever need another off-screen-rendered-then-captured
+element, don't reach for `position: fixed`/`absolute` — this bites every time.
+
+## Airgap Server must always track a TCA version override — same product, always identical
+`versions.json`'s `airgap` row is value-for-value identical to `tca`'s in every release (Airgap
+Server is a TCA component). But Airgap has no picker of its own (single-value matrix cell), so when
+a user overrides TCA's current version (for drift — e.g. TCP source 4.0 nominally implies TCA 3.1,
+but overriding to 2.3 for a live environment that hasn't caught up), Airgap Server used to keep
+showing the stale nominal value while TCA showed the override — an inconsistent, wrong pair on the
+same runbook. Fixed in `generate()` (falls back to `sourceChoice["tca"]` for the `airgap` card) and
+live in the wizard checklist (`refreshAirgapLabel()`, called from `applyTcaK8sDefaultsAndRefresh()`
+alongside the TKG label refresh, tagged with `.ck-airgapver`). If another component is ever found to
+always mirror TCA's version the same way, it needs this same treatment.
+
+## card.k8sVersion carries a hop count — use it, don't just show the bookend
+A bare "1.24.10 → 1.30.2" in the summary card/phase header/markdown reads as a single direct jump,
+but it's really the bookend of a multi-step chain (the full waypoint breakdown is `card.k8sChain`,
+shown in the phase body) — user-flagged as misleading. `card.k8sVersion.hops` (waypoints.length - 1,
+set alongside `from`/`to` in `generate()`) and the shared `hopsQualifier()` helper append
+`" (N-step upgrade)"` whenever hops > 1, at all three render sites. If you add a fourth render
+surface for these cards, wire this too, not just `from`/`to`.
+
+## PDF export was cropping text on every page, and losing the closing note entirely
+Two separate html2pdf.js bugs, both found by empirically bisecting (screenshotting rendered PDF
+pages), not by reading docs — neither is obvious from the config alone:
+1. **Every page had text cropped at the right margin (or, with a bad fix attempt, both margins).**
+   Root cause: `.pdf-holder`'s CSS width (800px, `content-box` so the 16px padding added on top)
+   exceeded an A4 page's printable width at 10mm margins (~718px at 96dpi) — html2pdf.js does
+   **not** scale wide content down to fit the page; it clips at the page edge. Fix: narrowed to
+   680px with `box-sizing: border-box` (padding included, not added). Do NOT "fix" this by passing
+   `windowWidth`/`width` to the `html2canvas` option instead — tried that first, it made it worse
+   (both edges cropped instead of just the right one).
+2. **The closing `.pdf-end` note was rendering as a nearly-blank final page with its content
+   missing** (first just a stray top-border sliver, then just the `<h2>` with both `<p>`s cut off).
+   This only happens right at the very end of the whole document, after the total content height —
+   looks like a rounding/boundary bug in html2pdf's canvas-height-to-page-count math. Things that
+   did NOT fix it: `page-break-before`/`break-before: page`, removing `break-inside: avoid`,
+   dropping `"avoid-all"` from the `pagebreak.mode` config, nesting the note inside the last
+   phase-card's own `.phase-body` instead of appending it as a trailing sibling (got further —
+   title showed, body still cut — but not there). What DID fix it: adding a plain empty
+   `<div style="height:150px">` **after** the closing note, still inside the last card. If you
+   touch `fullRunbookHTML()`'s ending again, keep that spacer — it looks superfluous but isn't.
+
+## Print only ever showed one phase — the interactive view never had the full runbook
+`#runbook` is swapped in place per-phase (`renderPhase()`, per the UX-flow note above) — printing
+it directly (the old `@media print` behavior) could only ever print whatever single phase happened
+to be on screen. Fixed by adding a `#printFull` container (`index.html`, hidden via `.print-only`
+normally, shown via `@media print`) that a `window.addEventListener("beforeprint", ...)` handler
+populates with `fullRunbookHTML(currentPlan)` right before printing — covers the Print button,
+Ctrl+P, and the browser's print menu identically, since `beforeprint` fires for all three.
+
+## Display order can diverge from execution order — but only in specifically-marked display paths
+`sequence.json`'s CNF order has AKO between the two Tanzu phases (Management → AKO → Workload) —
+that's the guide's real, required execution order (a genuine dependency), and `buildPlan()` (which
+drives the phase stepper/walkthrough) must never deviate from it. But `availableComponents()`
+(planner.js — feeds the wizard's Step 4 checklist) and `selectionSummaryHTML()` (app.js — the
+runbook's "Components to upgrade" card) are pure *selection/review* UI, not execution steps, so they
+run their output through `groupTanzuForDisplay()` (planner.js, exported) to show the two Tanzu
+entries adjacently for scannability. If you add another display-only list of components, decide
+deliberately whether it should also call this helper — don't assume "components list" always means
+"execution order."
+
+## Checklist items are green checkmarks, not tickable checkboxes — decorative only, by design
+`kind:"checklist"` phases (prerequisites, snapshot-backup, post-upgrade) render via
+`checklistSection()` (app.js) with a static ✓ per item, not `<input type="checkbox">`. A tickable,
+per-item-state version of this was tried once before (commit `1f4f59a`) and reverted (`a584256`) —
+don't resurrect interactive ticking here without the user asking again; last time it tangled with
+the phase-level done-tracking and got reverted alongside a "Finish" completion bug. Being decorative
+means it's safe to share verbatim across the interactive view, PDF export, and print (all three call
+the same `phaseBodyHTML()`) with no state/persistence to keep in sync.
+
 ## Verifying UI changes without chromium-cli/playwright
 On at least one machine this repo was worked from, `chromium-cli` wasn't installed and `pip
 install playwright` failed (sandboxed, no network egress to PyPI) — but a local Chrome.app was
