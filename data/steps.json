@@ -250,7 +250,8 @@
     "considerations": [
       "Aria Operations for Logs — also upgrade the agents in the required VMs to capture data.",
       "Aria Operations — the NTP service does not start automatically after upgrade and can fail to bring the cluster online; apply KB93793 workaround.",
-      "Aria Operations for Networks — continue using 6.13."
+      "Aria Operations for Networks — continue using 6.13.",
+      "Sequencing: the guide's 'Upgrade Sequence for VNF Workloads' table places Aria Operations for Networks earlier than the other three products here — concurrently with the NSX phase (its own numbered step), while Aria Operations, Aria Operations for Logs, and Aria Automation Orchestrator are sequenced after vSAN. This card follows the guide's shared 'Upgrade Aria Products' procedure and bundles all four together; if you're following the table's exact per-component order, do the Aria Operations for Networks portion alongside your NSX phase instead."
     ],
     "doc": "https://techdocs.broadcom.com/us/en/vmware-cis/aria.html"
   },

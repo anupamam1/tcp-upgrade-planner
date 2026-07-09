@@ -38,7 +38,7 @@
         "1.24.17": ["1.24.17", "1.25.13", "1.26.8", "1.27.11", "1.28.11", "1.29.6", "1.30.2"],
         "1.25.13": ["1.25.13", "1.26.8", "1.27.15", "1.28.11", "1.29.6", "1.30.2"],
         "1.26.8": ["1.26.8", "1.27.15", "1.28.11", "1.29.6", "1.30.2"],
-        "1.26.11": ["1.26.11", "1.26.14", "1.27.15", "1.28.11", "1.29.6", "1.30.2"],
+        "1.26.11": ["1.26.11", "1.27.15", "1.28.11", "1.29.6", "1.30.2"],
         "1.26.14": ["1.26.14", "1.27.15", "1.28.11", "1.29.6", "1.30.2"],
         "1.27.8": ["1.27.8", "1.28.11", "1.29.6", "1.30.2"],
         "1.27.11": ["1.27.11", "1.28.11", "1.29.6", "1.30.2"],
@@ -69,9 +69,11 @@
       "1.25.7": ["1.24.10"],
       "1.26.8": ["1.24.10", "1.24.17", "1.25.13", "1.26.8"],
       "1.27.5": ["1.26.8"],
+      "1.28.4": ["1.26.11", "1.27.8", "1.28.4"],
+      "1.28.7": ["1.26.14", "1.27.11", "1.28.7"],
       "1.28.11": ["1.26.14", "1.27.15", "1.28.11", "1.29.6", "1.30.2"]
     },
-    "mgmtWorkloadCompatNote": "From TCA's 'Workload Cluster Compatibility Cluster Operations' tables — each published management cluster version only supports running/upgrading workload clusters within a specific version range. No table is published for management cluster 1.28.4 or 1.28.7 (both are pass-through/alternate-entry versions); workload options aren't filtered for those and their compatible range should be confirmed against the live compatibility page."
+    "mgmtWorkloadCompatNote": "From TCA's 'Workload Cluster Compatibility Cluster Operations' tables — each published management cluster version only supports running/upgrading workload clusters within a specific version range. Management 1.28.4 and 1.28.7 have no dedicated compatibility table of their own (both are pass-through/alternate-entry versions), but the Workload Cluster Kubernetes Version table's per-row 'Upgrade Management Cluster vX->v1.28.11' step reveals which workload starting points assume each: rows requiring 'v1.28.4->v1.28.11' (1.26.11, 1.27.8, 1.28.4) pair with management 1.28.4; rows requiring 'v1.28.7->v1.28.11' (1.26.14, 1.27.11, 1.28.7) pair with management 1.28.7. Workload rows with no 'Upgrade Management Cluster' step at all (1.28.11, 1.29.6, 1.30.2) assume management has already reached its final target (1.28.11), not 1.28.4 or 1.28.7."
   },
   "3.4": {
     "tcpTarget": "5.1",
@@ -86,15 +88,15 @@
       "finalTarget": "1.33.1",
       "chains": {
         "1.27.15": ["1.27.15", "1.27.16", "1.28.15", "1.29.15", "1.30.13", "1.31.9", "1.32.5", "1.33.1"],
-        "1.28.11": ["1.28.11", "1.28.15", "1.29.15", "1.30.13", "1.31.9", "1.32.5", "1.33.1"],
-        "1.29.6": ["1.29.6", "1.29.15", "1.30.13", "1.31.9", "1.32.5", "1.33.1"],
-        "1.30.2": ["1.30.2", "1.30.13", "1.31.9", "1.32.5", "1.33.1"]
+        "1.28.11": ["1.28.11", "1.29.15", "1.30.13", "1.31.9", "1.32.5", "1.33.1"],
+        "1.29.6": ["1.29.6", "1.30.13", "1.31.9", "1.32.5", "1.33.1"],
+        "1.30.2": ["1.30.2", "1.31.9", "1.32.5", "1.33.1"]
       },
       "interleave": {
-        "1.27.15": "Interleaved with the management cluster: upgrade management cluster to 1.29.15 before this continues past 1.27.16.",
-        "1.28.11": "Interleaved with the management cluster: upgrade management cluster to 1.29.15 before this continues past 1.28.15.",
-        "1.29.6": "Interleaved with the management cluster: upgrade management cluster to 1.29.15 before this continues past 1.29.15.",
-        "1.30.2": "Interleaved with the management cluster: upgrade management cluster to 1.29.15 first."
+        "1.27.15": "Interleaved with the management cluster: upgrade management cluster to 1.29.15 first, before starting any workload hop in this chain (per the table, this is required even for the first hop, to v1.27.16).",
+        "1.28.11": "Interleaved with the management cluster: upgrade management cluster to 1.29.15 first, before starting any workload hop in this chain — the table's own v1.33.1-column path for this row skips 1.28.15 entirely and jumps straight to 1.29.15.",
+        "1.29.6": "Interleaved with the management cluster: upgrade management cluster to 1.29.15 first, before starting any workload hop in this chain — the table's own v1.33.1-column path for this row skips 1.29.15 entirely and jumps straight to 1.30.13.",
+        "1.30.2": "Interleaved with the management cluster: upgrade management cluster to 1.29.15 first, before starting any workload hop in this chain — the table's own v1.33.1-column path for this row skips 1.30.13 entirely and jumps straight to 1.31.9."
       },
       "prerequisite": "Ensure workload clusters are already at Kubernetes 1.27.15 (on your current TCA 3.2/3.3 release) before starting migration to TCA 3.4. Also upgrade any Network Function to a version compatible with both Photon OS 3 and Photon OS 5 first, to avoid node customization failures and network downtime."
     }
