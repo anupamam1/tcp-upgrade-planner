@@ -155,6 +155,28 @@ svg { flex: none; }
 .wiz-hint { font-size: 0.78rem; color: var(--ink-dim); margin: 0.4rem 0 0; }
 .wiz-hint.top-note { margin: -0.6rem 0 1.4rem; padding: 0.55rem 0.8rem; border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 0 var(--radius) var(--radius) 0; color: var(--ink-2); font-size: 0.82rem; }
 .wiz-hint.top-note strong { color: var(--accent); }
+.whats-new { margin-top: 0.7rem; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--surface-2); overflow: hidden; }
+.whats-new summary {
+  cursor: pointer; padding: 0.7rem 0.9rem; font-size: 0.86rem; font-weight: 700; color: var(--accent);
+  background: var(--accent-soft); list-style: none; display: flex; align-items: center; gap: 0.5rem;
+  user-select: none;
+}
+.whats-new summary::-webkit-details-marker { display: none; }
+.whats-new summary:hover { background: var(--surface-3); }
+.wn-chevron { width: 16px; height: 16px; flex: none; stroke: var(--accent); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.15s ease; }
+.whats-new[open] .wn-chevron { transform: rotate(90deg); }
+.wn-label { flex: 1; }
+.wn-toggle-hint { font-size: 0.7rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.03em; color: var(--ink-dim); }
+.whats-new[open] .wn-toggle-hint { display: none; }
+.whats-new-body { padding: 0 0.85rem 0.85rem; font-size: 0.85rem; color: var(--ink-2); }
+.whats-new-body p { margin: 0.3rem 0; }
+.whats-new-body h4 { margin: 0.7rem 0 0.4rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-dim); }
+.whats-new-body ul { margin: 0.4rem 0; padding-left: 1.15rem; }
+.whats-new-body li { margin: 0.35rem 0; }
+.whats-new-body .fine { margin-top: 0.6rem; }
+.wn-why { margin: 0.5rem 0 0.85rem; padding: 0.6rem 0.75rem; border-left: 2px solid var(--accent); background: var(--surface-3); border-radius: 0 var(--radius) var(--radius) 0; }
+.wn-why p { margin: 0.35rem 0; }
+.wn-why strong { color: var(--ink); }
 .wizard-card select {
   width: 100%; background: var(--surface); color: var(--ink);
   border: 1px solid var(--line-2); border-radius: var(--radius); padding: 0.6rem 0.7rem;

@@ -1,4 +1,4 @@
-import { loadData, buildPlan, availableComponents, sourcesFor, intermediatesFor, targets, allSourcesFor, editionsFor, componentCaveat, docUrl, k8sVersionsFor, k8sChainFor, compatibleWorkloadVersions, tkgReleaseFor, tcaSourcesFor, k8sDefaultsForTca, groupTanzuForDisplay } from "./planner.js?v=38";
+import { loadData, buildPlan, availableComponents, sourcesFor, intermediatesFor, targets, allSourcesFor, editionsFor, componentCaveat, docUrl, k8sVersionsFor, k8sChainFor, compatibleWorkloadVersions, tkgReleaseFor, tcaSourcesFor, k8sDefaultsForTca, groupTanzuForDisplay } from "./planner.js?v=39";
 
 const el = (id) => document.getElementById(id);
 const DONE_KEY = "tcp-upgrade-done";
@@ -113,6 +113,7 @@ function onDestChange() {
   const source = el("source").value;
   const target = el("destination").value;
   k8sChoice = { mgmt: null, workload: null }; // Kubernetes hop tables are target-specific
+  renderWhatsNew(target);
   if (!target) { setStepsVisible(2); el("generate").disabled = true; return; }
 
   // Workload types valid for this source+destination.
@@ -127,6 +128,55 @@ function onDestChange() {
   }
   setStepsVisible(3);
   onEditionChange();
+}
+
+// Collapsible "What's New" for the chosen destination — from each target's own Release Notes
+// "What's New" section (curated, not the full guide text). Shown for every target, even one with
+// thin content (e.g. 5.0.2 is a maintenance release), rather than special-casing which targets get
+// it — keeps the UI predictable.
+function renderWhatsNew(target) {
+  const box = el("whatsNew");
+  const entry = target && DATA.whatsnew?.[target];
+  if (!entry) { box.hidden = true; return; }
+  box.hidden = false;
+  // Auto-expand whenever the destination (and so this content) actually changes, so it doesn't
+  // rely on the user noticing a collapsed bar — collapsing it back is still one click if unwanted.
+  box.open = true;
+  box.querySelector(".wn-label").textContent = `What's new in TCP ${target}`;
+  // Some targets' own Release Notes group "What's New" into real named categories (e.g. TCP 5.1's
+  // "Carrier-Grade Kubernetes Infrastructure" / "...VNF and CNF Automation and Orchestration") —
+  // preserve that structure via `categories` instead of flattening into one generic-labeled list;
+  // `highlights` (a flat array under one "New Features" label) is for targets with no such source
+  // grouping (e.g. 5.0.2's one-paragraph notes). An entry uses one or the other, not both.
+  // The release's own "why upgrade" framing (from its Release Overview), shown ahead of the
+  // itemized feature list below — impact-level, not a duplicate enumeration of the same items.
+  const whyUpgrade = entry.whyUpgrade?.length
+    ? `<div class="wn-why">${entry.whyUpgrade.map((w) => `<p><strong>${escape(w.title)}:</strong> ${escape(w.text)}</p>`).join("")}</div>`
+    : "";
+  const highlights = entry.categories?.length
+    ? entry.categories.map((c) => `<h4>${escape(c.title)}</h4><ul>${c.items.map((h) => `<li>${escape(h)}</li>`).join("")}</ul>`).join("")
+    : entry.highlights?.length
+      ? `<h4>New Features</h4><ul>${entry.highlights.map((h) => `<li>${escape(h)}</li>`).join("")}</ul>` : "";
+  // Link text names which release notes it points to — no separate "From the X Release Notes..."
+  // attribution sentence needed alongside it (dropped per user feedback: it read as explaining the
+  // curation process rather than something a customer needs).
+  const rnLink = entry.releaseNotesUrl
+    ? `<p class="fine"><a href="${entry.releaseNotesUrl}" target="_blank" rel="noopener">Read the full TCP ${escape(target)} Release Notes →</a></p>` : "";
+  // Related releases this target defers to for its own component-level detail (e.g. TCP 5.0.2's
+  // own notes are thin and point to TCA 3.3.0.1's) — shown as their own labeled sub-section with
+  // real curated highlights, not just a bare link, so users don't have to leave the tool to see them.
+  const related = (entry.relatedReleases || []).map((r) => `
+    <h4>${escape(r.title)}</h4>
+    ${r.highlights?.length ? `<ul>${r.highlights.map((h) => `<li>${escape(h)}</li>`).join("")}</ul>` : ""}
+    ${r.url ? `<p class="fine"><a href="${r.url}" target="_blank" rel="noopener">Read the full ${escape(r.releaseNotesLabel || "release notes")} →</a></p>` : ""}
+  `).join("");
+  box.querySelector(".whats-new-body").innerHTML = `
+    <p>${escape(entry.summary)}</p>
+    ${whyUpgrade}
+    ${highlights}
+    ${rnLink}
+    ${related}
+  `;
 }
 
 function onEditionChange() {

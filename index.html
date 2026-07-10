@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VMware Telco Cloud Platform — Upgrade Planner</title>
+  <title>VMware Telco Cloud Platform Upgrade Planner</title>
   <meta name="description" content="Guided, phase-by-phase upgrade planner for VMware Telco Cloud Platform. Pick source and destination version, choose your components, and walk through each phase with detailed steps." />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@cds/city@1.1.0/css/bundles/default.min.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="assets/css/style.css?v=49" />
+  <link rel="stylesheet" href="assets/css/style.css?v=53" />
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
@@ -18,7 +18,7 @@
     <a href="#" class="brand" id="homeBtn" title="Back to plan options" aria-label="Back to plan options">
       <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
       <div>
-        <h1>Telco Cloud Platform <span>Upgrade Planner</span></h1>
+        <h1>VMware Telco Cloud Platform <span>Upgrade Planner</span></h1>
         <p class="tagline">Plan a guided, phase-by-phase upgrade.</p>
       </div>
     </a>
@@ -49,6 +49,14 @@
         <label class="wiz-label"><span class="num">2</span> Destination version <span class="wiz-q">(where you are upgrading to)</span></label>
         <select id="destination"></select>
         <p class="wiz-hint" id="destHint"></p>
+        <details class="whats-new" id="whatsNew" hidden>
+          <summary>
+            <svg class="wn-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+            <span class="wn-label"></span>
+            <span class="wn-toggle-hint">Click to expand</span>
+          </summary>
+          <div class="whats-new-body"></div>
+        </details>
       </div>
 
       <div class="wiz-step" id="step3" hidden>
@@ -96,6 +104,6 @@
     </a>
   </footer>
 
-  <script type="module" src="assets/js/app.js?v=53"></script>
+  <script type="module" src="assets/js/app.js?v=61"></script>
 </body>
 </html>

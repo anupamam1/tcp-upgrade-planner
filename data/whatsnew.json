@@ -1,0 +1,93 @@
+{
+  "5.0.2": {
+    "summary": "A maintenance release — various enhancements and critical fixes across Kubernetes management and carrier-grade network function orchestration.",
+    "highlights": [
+      "Calico add-on update for Workload Clusters on Kubernetes 1.27, 1.28, 1.29, and 1.30 — deployed automatically as part of the TCA 3.3.0.1 upgrade, even if your Kubernetes version doesn't change; may cause a brief service fluctuation, recommended since it contains Calico fixes."
+    ],
+    "releaseNotesUrl": "https://techdocs.broadcom.com/us/en/vmware-sde/telco-cloud/vmware-telco-cloud-platform/5-0-2/vmware-telco-cloud-platform-502-release-notes.html",
+    "relatedReleases": [
+      {
+        "title": "New in Telco Cloud Automation 3.3.0.1",
+        "highlights": [
+          "More VMX configuration options per workload cluster, for finer control over node placement and performance.",
+          "Clearer error messages when a workload cluster rehome operation fails, making it easier to identify and fix the cause.",
+          "System service logs can now be forwarded to a journal log server, making them easier to retrieve.",
+          "Photon 5 Kubernetes 1.30.2 BYOI template updated with security fixes and cgroup v2 support.",
+          "Workload clusters running an older Whereabouts add-on are now upgraded automatically as part of the Kubernetes upgrade — no separate step needed.",
+          "Cluster rehome operations now validate upfront that the source and target management clusters meet the rehoming prerequisites, before the operation proceeds.",
+          "Kafka health checks now reconnect automatically when Kafka becomes unhealthy, instead of requiring manual intervention.",
+          "Clearer error messages when a management cluster's Kubernetes upgrade fails, making it easier to identify and fix the cause."
+        ],
+        "releaseNotesLabel": "VMware Telco Cloud Automation 3.3.0.1 Release Notes",
+        "url": "https://techdocs.broadcom.com/us/en/vmware-sde/telco-cloud/vmware-telco-cloud-automation/3-3-0-1/vmware-telco-cloud-automation-release-notes/vmware-telco-cloud-automation-3301-release-notes.html"
+      }
+    ]
+  },
+  "5.1": {
+    "summary": "VMware Telco Cloud Platform 5.1 is a significant milestone release, featuring comprehensive automation enhancements for both Kubernetes management and carrier-grade network function orchestration.",
+    "whyUpgrade": [
+      {
+        "title": "Lifecycle Management (LCM)",
+        "text": "Introduces Kubernetes version 1.33 with an additional year of support, and adds automated upgrade workflows for both Kubernetes clusters and the underlying ESXi infrastructure — simplifying lifecycle management and significantly reducing operational overhead."
+      },
+      {
+        "title": "Security",
+        "text": "Adds fleet-wide security policy enforcement, automatic certificate monitoring and management, and stronger Harbor security capabilities — strengthening security and safeguarding data center integrity."
+      },
+      {
+        "title": "CNF Automation",
+        "text": "Supports Git-based artifact management for CNF catalogs, improving automation and operational efficiency."
+      },
+      {
+        "title": "Troubleshooting",
+        "text": "Introduces a new command-line tool for faster log collection and troubleshooting, helping both on-site Operations and Broadcom Support accelerate root-cause analysis."
+      }
+    ],
+    "categories": [
+      {
+        "title": "Carrier-Grade Kubernetes Infrastructure",
+        "items": [
+          "Kubernetes 1.33.1 support (Tanzu Kubernetes Grid 2.5.4) — cuts the lag between upstream Kubernetes releases and their integration into TCP to about 3 months, giving quicker access to the latest features and fixes. It also carries an extra year of support (2 years total), a benefit that now also applies retroactively to Kubernetes 1.30.2 and 1.27.15.",
+          "Manage 7 different Kubernetes versions at once through a single Tanzu Kubernetes management cluster and a single TCA instance, so network functions can each run on the version they actually need instead of the fleet being forced onto one version.",
+          "Avi Load Balancer 30.2.3 adds IPv6 support between AKO and the Avi controller, so CNFs can use ingress virtual IPs over IPv4, IPv6, or dual-stack networks."
+        ]
+      },
+      {
+        "title": "Carrier-Grade VNF and CNF Automation and Orchestration",
+        "items": [
+          "CaaS ES Upgrade Workflow: single-click automated Kubernetes upgrades with enhanced fail-fast conditions, reducing downtime and operational overhead, and giving flexibility to manage multiple Kubernetes versions across TCP releases based on network function requirements.",
+          "Rehoming Workflow: move workload clusters between management clusters in batches, enabling non-disruptive cluster maintenance.",
+          "IaaS LCM Workflow: upgrade ESXi clusters hosting SR-IOV and latency-sensitive workloads directly through TCA.",
+          "A new CLI command for on-demand Kubernetes cluster/node log generation, independent of the standard TCA log bundle, for faster root-cause analysis with less operational overhead.",
+          "Certificate Observability and Auto-Renewal: automatic monitoring and renewal of cluster component certificates and kubeconfig tokens, cutting manual effort and reducing the risk of service interruptions from expired certificates.",
+          "Harbor Certificate and Credential Management: TCA alerts on Harbor certificate/credential issues before they cause problems, and lets admins push a single-click update cascaded to every TCA-managed cluster — simplifying credential management and speeding up root-cause analysis.",
+          "Kubernetes Policy Management: pre-configured, NSA/CISA-aligned security policies applied fleet-wide with centralized violation tracking and automatic drift reconciliation, helping CSPs meet compliance requirements and support security audits.",
+          "Git-based CSAR management: version-controlled Network Function packages via an external Git repository, so the same package stays consistent and reusable across TCA deployments.",
+          "Harbor — IPv6 and dual-stack deployment support for CNF workload clusters.",
+          "Harbor — audit logging of key events, aligned to UK Telecommunications Security Act (TSA) compliance requirements.",
+          "Harbor — automatic SBOM generation per artifact, for visibility into dependencies, versions, and licenses to help manage security issues.",
+          "Harbor — Trivy database details viewable directly in the TCA UI, without leaving the workflow.",
+          "Harbor — Pod Security Admission support, letting Harbor pods run with non-privileged access."
+        ]
+      }
+    ],
+    "releaseNotesUrl": "https://techdocs.broadcom.com/us/en/vmware-sde/telco-cloud/vmware-telco-cloud-platform/5-1/release-notes/vmware-telco-cloud-platform-51-release-notes.html",
+    "relatedReleases": [
+      {
+        "title": "New in Telco Cloud Automation 3.4",
+        "highlights": [
+          "Audit Log: TCA events are now organized by category and severity, and can be filtered and searched on those classifications.",
+          "Airgap Server: upgraded to Photon 5 (in-place upgrade supported from Photon 4), Harbor upgraded to 2.13.1, and support for OCI-format Helm chart uploads.",
+          "Automated log collection from TKG clusters and cluster nodes, directly from TCA-CP — for faster troubleshooting.",
+          "Simplified TCA-CP/TCA-M pairing, with the whole TCA infrastructure now managed from a single pane.",
+          "CNF inventory now loads on-demand for better performance, with warnings when Helm chart configurations grow too large, and support for hardcoded image pull secrets in Helm charts.",
+          "TCA appliance: session management (view/terminate open TCA-M sessions), upgraded to Photon 5, and internal Kubernetes upgraded for security.",
+          "OpenID Connect (OIDC) can now be configured as an authentication provider alongside vCenter and Active Directory — a limited-availability feature, not enabled by default.",
+          "Telco Cloud Platform Management Pack for Aria Operations: a dashboard for cluster certificate status, with alerts when something needs attention."
+        ],
+        "releaseNotesLabel": "VMware Telco Cloud Automation 3.4 Release Notes",
+        "url": "https://techdocs.broadcom.com/us/en/vmware-sde/telco-cloud/vmware-telco-cloud-automation/3-4/vmware-telco-cloud-automation-release-notes/vmware-telco-cloud-automation-34-release-notes.html"
+      }
+    ]
+  }
+}

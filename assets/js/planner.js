@@ -1,14 +1,14 @@
 // Loads the curated data and resolves an ordered upgrade runbook.
 
 export async function loadData() {
-  const files = ["versions", "components", "sequence", "paths", "steps", "docs", "k8s-hops"];
-  const [versions, components, sequence, paths, steps, docs, k8sHops] = await Promise.all(
+  const files = ["versions", "components", "sequence", "paths", "steps", "docs", "k8s-hops", "whatsnew"];
+  const [versions, components, sequence, paths, steps, docs, k8sHops, whatsnew] = await Promise.all(
     files.map((f) => fetch(`data/${f}.json`, { cache: "no-store" }).then((r) => {
       if (!r.ok) throw new Error(`Failed to load data/${f}.json (${r.status})`);
       return r.json();
     }))
   );
-  return { versions, components, sequence, paths, steps, docs, k8sHops };
+  return { versions, components, sequence, paths, steps, docs, k8sHops, whatsnew };
 }
 
 // The TCA release that corresponds to a TCP target (drives which k8s-hops.json table applies).

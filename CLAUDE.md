@@ -177,7 +177,8 @@ post-upgrade-checklist.html. NOTE: Avi Load Balancer's real slug is `upgrade-ako
 - `data/`: `versions.json` (matrix + targets), `components.json` (meta + mandatory + gate),
   `sequence.json` (CNF/VNF order + fullStack flags), `paths.json` (byTarget + componentCaveats +
   sourceLabels + sourceGroups), `steps.json` (per-phase single-source content), `docs.json`
-  (version-aware doc URLs).
+  (version-aware doc URLs), `k8s-hops.json` (per-TCA-target Kubernetes hop chains + TKG releases),
+  `whatsnew.json` (per-target "why upgrade" highlights, from each release's own Release Notes).
 - `tools/extract.py` (thin `pdftotext -layout` wrapper; run
   `python3 tools/extract.py {tcp502,tcp51,tca,tca34}` to re-dump a chapter) + its curated output
   `tools/upgrade_guide_text_5-0-2.txt`, `tools/upgrade_guide_text_5-1.txt`,
@@ -267,6 +268,154 @@ account/API key needed, just an `<img>` pointing at
 increments and re-renders the SVG server-side on every load. No JS, no cookies, no PII. If the badge
 service ever needs to change, keep it to a single `<img>` src swap — don't add a client-side
 counter/analytics script for this.
+
+## "What's New" panel (data/whatsnew.json)
+A collapsible `<details>` under the destination-version step (`#whatsNew`, `renderWhatsNew()` in
+app.js), showing curated highlights from that target's own Release Notes "What's New" section —
+answers "why upgrade to this version" beyond just the mechanical steps. Keyed by target ("5.0.2",
+"5.1"), same shape both entries: `summary` + `highlights[]` + `sourceNote`. Shown for **every**
+target, even one with thin content — TCP 5.0.2 is a maintenance release (its guide's own "What's
+New" is one sentence plus the Calico add-on note), TCP 5.1 is a real feature release (Kubernetes
+1.33.1 support, 7-simultaneous-version cluster management, TCA 3.4's new workflows, Harbor 2.13.1
+IPv6/SBOM/audit-logging). Deliberately not special-cased per target — a future target with thin
+content should still show the panel (collapsed, same as now), not hide it. Sourced from each
+release's own Release Notes PDF section titled "What's New" (a different, separate document from
+the Upgrade Guide chapter this project mostly draws from) — if a new target is added, find that
+same section in ITS release notes before writing entries, don't infer from the upgrade guide alone.
+- `releaseNotesUrl`: link to that target's own TCP Release Notes page (techdocs.broadcom.com).
+- `relatedReleases[]` (`{title, highlights[], sourceNote, url}`): for targets whose own Release
+  Notes are thin and explicitly defer elsewhere (5.0.2's says "For more information, see the
+  VMware Telco Cloud Automation 3.3.0.1 Release Notes" almost verbatim) — don't just link out,
+  actually fetch that referenced release notes page's own "What's New" section and curate real
+  highlights from it into its own labeled sub-section (e.g. "New in Telco Cloud Automation
+  3.3.0.1"), same shape/rendering as the top-level highlights, so the user doesn't have to leave
+  the tool to see what changed. User-requested (2026-07): initially just linked out, but since the
+  whole point of this panel is answering "why upgrade" inline, a bare link defeats that for exactly
+  the target that needs it most (a thin TCP-level "What's New" is precisely when the *component*
+  release notes are where the real content lives). Got the surrounding sourceNote wrong once already: the first
+  version of 5.0.2's `sourceNote` implied the highlights came from a TCA 3.3.0.1 breakdown, when
+  actually TCP 5.0.2's own notes never go into TCA detail at all, just point to it — user-caught.
+- **User-facing copy (`sourceNote`, `summary`, any string that renders in the UI) must read like
+  product copy, not like a code comment or a note to a reviewer.** The same `sourceNote` fix above
+  went through two drafts: the first was factually correct but said the section "is this brief by
+  design — it's a maintenance release —", which is *me* explaining/justifying *my own curation
+  choice* to whoever's reading it, not something a customer planning an upgrade needs. Second draft
+  just states the facts ("From the TCP 5.0.2 Release Notes' 'What's New' section. See the ... below
+  for what specifically changed.") with no meta-commentary about why the text is the length it is.
+  This class of mistake — reasoning-about-the-content leaking into the content itself — is easy to
+  make when a string is written right after investigating *why* something is thin/wrong/surprising;
+  reread any such string asking "would a customer, with zero knowledge of how this tool was built,
+  find this sentence strange?" before shipping it.
+- The collapsible `<summary>` needs to visibly read as clickable, not as a plain bold line — it was
+  originally just bold text + a tiny CSS `::before` triangle and users didn't register it as
+  interactive. Current version: a full-width tinted bar (`--accent-soft` background, `--accent`
+  border) with an SVG chevron that rotates on `[open]`, plus a "Click to expand" hint that disappears
+  once open (`.wn-toggle-hint`, hidden via `.whats-new[open] .wn-toggle-hint`).
+- Even with that styling, user feedback was it still wasn't noticeable enough — `renderWhatsNew()`
+  now sets `box.open = true` every time (i.e. every time the destination actually changes), not just
+  visible-but-collapsed. Collapsing it is still one click if unwanted, but the default is seen, not
+  discovered. Considered a two-column side-panel layout instead (closer to the VCF Upgrade Planner
+  reference this project is inspired by) but decided against it: a persistent side panel sits empty
+  through steps 1 and most of step 2, then keeps claiming screen space through steps 3/4 where it's
+  no longer the relevant thing — auto-expanding in place solves the visibility problem without that
+  tradeoff. If visibility is still reported as a problem after this, that's the next thing to revisit,
+  not a third round of collapsed-header styling.
+- 5.1 also has a `relatedReleases` entry ("New in Telco Cloud Automation 3.4") — TCP 5.1's own
+  "What's New" already covers TCA 3.4 substantially (unlike 5.0.2), so this sub-section holds only
+  what ISN'T already in the top-level `highlights` (Audit Log categorization, Airgap Photon 5 +
+  OCI Helm charts, support-bundle collection, TCA-CP/TCA-M pairing simplification, CNF inventory/
+  Helm-size improvements, TCA appliance Photon 5 + internal K8s 1.30.2, OIDC auth, Aria Ops
+  management pack) — cross-checked against the full TCA 3.4 Release Notes page, not just the TCP
+  5.1 guide's excerpt. Also caught and fixed a real omission while doing this: the original 5.1
+  `highlights` dropped "IaaS LCM Workflow" (ESXi cluster upgrades via TCA) even though TCP 5.1's own
+  guide text listed it alongside CaaS ES Upgrade Workflow and Rehoming Workflow — restored it.
+- **Highlights must keep the "why it matters" context that's actually in the source, not just the
+  feature name.** User-reported: the first pass of every `highlights` array over-compressed each
+  item into a single terse clause ("Kubernetes 1.33.1 support — cuts the lag to 3 months") when the
+  TCP 5.1 guide's own prose had real explanatory content (the 2-year extended support policy and
+  which earlier K8s versions it retroactively covers, the exact rehoming prerequisites, etc.) that
+  got dropped in compression. Fixed by re-reading the primary source text (not a re-paraphrase) and
+  writing fuller items that keep the genuine "why"/mechanics sentences, not inventing new ones — the
+  TCA 3.4 and 3.3.0.1 `relatedReleases` items stayed comparatively terser because their own source
+  pages (re-fetched with an explicit "give me full verbatim text, not a summary" prompt) are
+  themselves written in short fragments with little explanatory prose — that's a property of the
+  source, not something to pad out. When curating any future entry, check the actual source
+  register (narrative paragraphs vs. terse fragments) and match it — don't uniformly compress to
+  one-liners regardless of what the source actually provides.
+- **This rewrite still wasn't right the first time — two more rounds of user feedback refined it
+  further, both worth internalizing:**
+  1. **Preserve the source's own category structure; don't flatten it.** The TCP 5.1 guide's
+     "What's New" isn't one flat list — it's two named sections, "Carrier-Grade Kubernetes
+     Infrastructure" and "Carrier-Grade VNF and CNF Automation and Orchestration" (verified by
+     re-reading the primary PDF text directly, not a summary). Flattening these into one list under
+     a single generic "New Features" label lost real structure the source author chose deliberately.
+     Schema: `categories: [{title, items[]}]` (used when the source has real named groupings) is now
+     rendered as its own `<h4>{title}</h4><ul>` block per category — see alongside `highlights` (flat
+     array, one generic "New Features" label) for sources with no such grouping, e.g. 5.0.2's single
+     paragraph. An entry uses one field or the other, never both. Re-reading the primary source this
+     carefully also surfaced 2 items the first pass had silently dropped entirely (the `caas_support`
+     CLI log tool, and Harbor CNF Certificate and Credential Management) and undercounted Harbor
+     2.13.1's enhancements (5 distinct items in the source, only 3 had been captured) — a categorized,
+     source-structure-preserving rewrite is also just a forcing function for completeness.
+  2. **Within an item, keep outcome/impact language ("reduces downtime," "cuts manual effort,"
+     "gives flexibility to..."), cut granular technical enumeration** (specific example add-on names,
+     itemized stat lists, specific config parameter names) **that the previous full-context fix
+     over-corrected into including.** The line the user pointed to approvingly as the target register:
+     "...with enhanced fail-fast conditions, reducing downtime and operational overhead. This
+     capability also provides flexibility to manage multiple Kubernetes versions across Telco Cloud
+     Platform releases based on network function requirements." — impact-focused, no example lists.
+     The lesson from these two rounds together: neither "compress to one clause" nor "keep every
+     example the source mentions" is right — keep the *why*, drop the *itemized specifics*.
+- Also caught twice in this same pass: a `sourceNote` that lists out which component release notes
+  were consulted in a parenthetical (e.g. "...section (VMware Telco Cloud Automation 3.4, Avi Load
+  Balancer 30.2.3, Harbor 2.13.1, VMware Tanzu Kubernetes Grid 2.5.4)") reads as me listing my
+  sources for a reviewer, same underlying mistake as the "is this brief by design" line documented
+  above — user flagged it a second time on a *different* string, confirming this is a pattern to
+  actively watch for, not a one-off. **Final resolution (superseding an earlier note here that said
+  to just simplify `sourceNote` to one sentence): `sourceNote` is gone entirely, from every entry.**
+  Attribution now lives only in the "Read the full ⟨X⟩ Release Notes →" link text itself
+  (`releaseNotesUrl`/`releaseNotesLabel` in the data — the label names which release notes for
+  `relatedReleases` items, since there's more than one target's notes in play there). No separate
+  sentence explaining where the content came from at all — the link already says it.
+- Per-item product/version prefixes ("TCA 3.4 — ...", "Harbor 2.13.1 — ...") repeated across many
+  consecutive bullets were also removed (user: "not only TCA version... also other components their
+  version"). A `categories` section title already establishes the product family (e.g. "...VNF and
+  CNF Automation and Orchestration" implies TCA/Harbor); repeating the exact version string on every
+  single bullet under it added noise without adding information — the version is already shown
+  elsewhere (the "Components to upgrade" summary). Where a bullet still needs to disambiguate which
+  product it's about *within* a mixed category (TCA items vs. Harbor items sharing one category
+  here), a bare product name with no version ("Harbor — ...") is enough — only repeat a version
+  number when the specific version is itself the point of that bullet (e.g. the Kubernetes
+  1.33.1/TKG 2.5.4 item, where the versions ARE the content, not decoration).
+- Same trim standard applied a second time, specifically to `relatedReleases` items (the two
+  "New in Telco Cloud Automation 3.3.0.1 / 3.4" sub-sections): user flagged one item (TCA-CP/TCA-M
+  pairing) that named the underlying mechanism — one-time passwords, hashes, VIM assignment, the
+  separate ":9443 portal" it replaces. Trimmed that and re-swept both `relatedReleases` arrays for
+  the same class of detail: VMX config parameter names, custom resource type names, specific log
+  service names, specific tool/library versions beyond the headline one, an internal codename
+  ("Cayman") — replaced with outcome-only phrasing ("Simplified TCA-CP/TCA-M pairing, with the whole
+  TCA infrastructure now managed from a single pane."). Reason given directly: "we are providing
+  link to full documentation anyways" — the release-notes link at the bottom of each section is
+  where a user goes for mechanism-level detail; the in-tool copy only needs to answer "should I care
+  and why," not "how does it work." Applies to `highlights`/`categories` items too, not just
+  `relatedReleases` — same standard, same reason.
+- `whyUpgrade[]` (`{title, text}`, optional, rendered as `.wn-why` — a left-accent-bordered block
+  right after `summary`, before `categories`/`highlights`): added because the itemized
+  `categories`/`highlights` list, however well-curated, is still a feature inventory, not a "why
+  upgrade" pitch — user pointed at TCP 5.1's own Release Notes "Release Overview" section (the
+  paragraph right before the "What's New" heading this project had originally started reading from,
+  so it was missed entirely the first time around) as the missing piece: a short, real,
+  already-written executive summary organized by *impact area* (Lifecycle Management, Security, CNF
+  Automation, Troubleshooting for 5.1) rather than by component. Verbatim-sourced from the PDF
+  (`/tmp/repo51_full.txt` lines ~340-356, "Release Overview" heading), then trimmed of the same
+  technical specifics called out above (dropped "OPA Gatekeeper," "SR-IOV," "TOSCA-modeled," "SBOM"
+  as named mechanisms — kept the plain-English outcome each one produces). Optional per entry (only
+  add it where the source actually has this kind of overview paragraph — don't write one from
+  scratch for a target that lacks it, e.g. 5.0.2's notes have no equivalent overview section).
+  **Lesson: when a release's own notes have a "What's New" section AND a separate "Release Overview"/
+  executive-summary section, both need to be read before curating this panel — the overview section
+  is often exactly the "why should I care" framing this panel exists to surface, and it's easy to
+  miss because it sits before the heading you'd naturally jump to.**
 
 ## "Already at the target Kubernetes version" must be a selectable option, not just the endpoint
 User-reported and guide-confirmed: for some source→target hops (verified concretely for TCP 5.0.1→
