@@ -337,6 +337,8 @@ svg { flex: none; }
 /* ---------- Footer ---------- */
 .footer { padding: 1.6rem; text-align: center; color: var(--ink-dim); font-size: 0.8rem; border-top: 1px solid var(--line); background: var(--surface); }
 .footer a { color: var(--accent); }
+.visitor-badge { display: inline-block; margin-top: 0.7rem; line-height: 0; }
+.visitor-badge img { height: 20px; vertical-align: middle; }
 
 /* ---------- PDF export holder ---------- */
 /* Must stay in normal document flow (no position:fixed/absolute) — html2canvas (via html2pdf.js)
